@@ -1,0 +1,14 @@
+name: env
+channels:
+  - defaults
+dependencies:
+  - pip=23.3.1
+  - python=3.11.7
+  - pip:
+      - azure-ai-ml==1.15.0
+      - jupyter
+      - loguru==0.7.2
+      - matplotlib==3.8.4
+      - numpy==1.26.3
+      - plotly
+      - tk

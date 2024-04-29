@@ -6,9 +6,11 @@ dependencies:
   - python=3.11.7
   - pip:
       - azure-ai-ml==1.15.0
+      - azureml-mlflow==1.56.0
       - jupyter
       - loguru==0.7.2
       - matplotlib==3.8.4
+      - mlflow==2.12.1
       - numpy==1.26.3
       - plotly
       - tk

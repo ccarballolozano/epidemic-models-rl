@@ -51,7 +51,9 @@ def compute_social_optimum_policy(
             )
         delta = np.max(np.abs(list({s: V[s] - V_k[s] for s in V}.values())))
         if delta < theta:
-            logger.info(f"Converged after {k} iterations, Delta: {delta}")
+            logger.info(
+                f"Social Optimum computation converged after {k} iterations, Delta: {delta}"
+            )
             break
         elif k >= max_iterations:
             logger.warning(
@@ -59,7 +61,7 @@ def compute_social_optimum_policy(
             )
             break
         else:
-            if k % 100 == 0:
+            if k % 1000 == 0:
                 logger.debug(f"Iteration: {k}, Delta: {delta}")
 
     policy = {state: 0 for state in states}

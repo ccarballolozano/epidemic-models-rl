@@ -84,7 +84,7 @@ class ImageApp:
     def load_image(self, event=None):
         try:
             # Construct the image path based on the selected image numbers
-            image_path = f"{results_dir}/plt_{self.N.get()}_{self.encounter_prob_N.get()}_{self.recovery_prob_N.get()}_{self.cost_infection.get()}_{self.cost_lockdown.get()}.png"
+            image_path = f"{images_dir}/plt_{self.N.get()}_{self.encounter_prob_N.get()}_{self.recovery_prob_N.get()}_{self.cost_infection.get()}_{self.cost_lockdown.get()}.png"
             image = Image.open(image_path)
             photo = ImageTk.PhotoImage(image)
             self.canvas.config(width=image.width, height=image.height)
@@ -95,11 +95,11 @@ class ImageApp:
 
 
 def main(args):
-    global results_dir
+    global images_dir
     global N_, encounter_prob_N_, recovery_prob_N_, cost_infection_, cost_lockdown_
-    results_dir = args.results_dir
+    images_dir = args.images_dir
 
-    image_names = list(glob.glob(f"{results_dir}/plt_*.png"))
+    image_names = list(glob.glob(f"{images_dir}/plt_*.png"))
     params = [
         image_name.split("/")[-1].split(".png")[0].split("_")[1:]
         for image_name in image_names
@@ -121,7 +121,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--results_dir",
+        "--images-dir",
         type=str,
         default="outputs/social_optimum/2024-04-29 02:18:22.639834",
     )

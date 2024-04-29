@@ -5,10 +5,44 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Module",
+            "name": "Visualize results",
             "type": "debugpy",
             "request": "launch",
-            "module": "experiments.sir_with_confinements.visualize_social_optimum_results"
+            "module": "experiments.sir_with_confinements.visualize_social_optimum_results",
+            "args": [
+                "--images-dir",
+                "outputs/social_optimum/all/plot"
+            ]
+        },
+        {
+            "name": "experiments.sir_with_confinements.generate_nash_equilibrium_results",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.sir_with_confinements.generate_nash_equilibrium_results",
+            "args": [
+                "--output_dir",
+                "outputs/nash_equilibrium/all/plot"
+            ]
+        },
+        {
+            "name": "Nash Equilibrium",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.sir_with_confinements.nash_equilibrium",
+            "args": [
+                "--N",
+                "15",
+                "--encounter_prob",
+                "0.02",
+                "--recovery_prob",
+                "0.046666666666666666667",
+                "--cost_infection",
+                "7.75",
+                "--cost_lockdown",
+                "1",
+                "--discount_factor",
+                "0.99"
+            ]
         }
     ]
 }

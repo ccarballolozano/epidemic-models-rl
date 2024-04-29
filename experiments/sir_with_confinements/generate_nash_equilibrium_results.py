@@ -7,22 +7,23 @@ import matplotlib.pyplot as plt
 import mlflow
 import numpy as np
 
-from src.sir_with_confinements.social_optimum import compute_social_optimum_policy
+from src.sir_with_confinements.nash_equilibrium import compute_nash_equilibrium
 
 
-Ns = [15]
+Ns = [30]
 encounter_probs_N = np.linspace(0.1, 1, 10)
 recovery_probs_N = np.linspace(0.1, 1, 10)
 costs_infection = np.linspace(1, 10, 5)
 costs_lockdown = np.linspace(1, 10, 5)
 discount_factor = 0.99
 theta = 1e-6
+max_iterations = 5e2
 
 
 def main(args):
     output_dir = args.output_dir
     if output_dir is None:
-        output_dir = os.path.join(output_dir, "social_optimum", str(datetime.now()))
+        output_dir = os.path.join(output_dir, "nash_equilibrium", str(datetime.now()))
     os.makedirs(output_dir, exist_ok=True)
     params = {
         "Ns": Ns,
@@ -32,6 +33,7 @@ def main(args):
         "costs_lockdown": costs_lockdown,
         "discount_factor": discount_factor,
         "theta": theta,
+        "max_iterations": max_iterations,
     }
     mlflow.log_params(params)
     n_iter = (
@@ -41,6 +43,8 @@ def main(args):
         * len(costs_infection)
         * len(costs_lockdown)
     )
+    os.makedirs(os.path.join(output_dir, "policy"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "plot"), exist_ok=True)
     iter = 0
     for N in Ns:
         for encounter_prob_N in encounter_probs_N:
@@ -53,7 +57,7 @@ def main(args):
                         logger.info(
                             f"Running configuration {iter}/{n_iter}, N={N}, encounter_prob_N={encounter_prob_N}, recovery_prob_N={recovery_prob_N}, cost_infection={cost_infection}, cost_lockdown={cost_lockdown}"
                         )
-                        policy, V = compute_social_optimum_policy(
+                        policy = compute_nash_equilibrium(
                             N,
                             encounter_prob,
                             recovery_prob,
@@ -61,19 +65,10 @@ def main(args):
                             cost_lockdown,
                             discount_factor,
                             theta,
+                            max_iterations,
                         )
-                        os.makedirs(os.path.join(output_dir, "V"), exist_ok=True)
-                        os.makedirs(os.path.join(output_dir, "policy"), exist_ok=True)
-                        os.makedirs(os.path.join(output_dir, "plot"), exist_ok=True)
-
-                        np.save(
-                            os.path.join(
-                                output_dir,
-                                "V",
-                                f"V_{N}_{encounter_prob_N}_{recovery_prob_N}_{cost_infection}_{cost_lockdown}.npy",
-                            ),
-                            V,
-                        )
+                        if policy is None:
+                            break
                         np.save(
                             os.path.join(
                                 output_dir,
@@ -83,14 +78,29 @@ def main(args):
                             policy,
                         )
                         f, ax = plt.subplots()
-                        for m_s, m_i in policy:
-                            if policy[m_s, m_i] == 0:
-                                ax.plot(m_s, m_i, "x", color="red", label="confinement")
-                            else:
-                                ax.plot(
-                                    m_s, m_i, "o", color="green", label="max exposure"
-                                )
-                        ax.set_title("Social Optimum Policy")
+                        for x, m_s, m_i in policy:
+                            if x == "S":
+                                if policy[x, m_s, m_i] == 0:
+                                    ax.plot(
+                                        m_s + 1,
+                                        m_i,
+                                        "x",
+                                        color="red",
+                                        label="confinement",
+                                    )
+                                else:
+                                    ax.plot(
+                                        m_s + 1,
+                                        m_i,
+                                        "o",
+                                        color="green",
+                                        label="max exposure",
+                                    )
+                        [
+                            ax.plot(0, m_i, "x", color="red", label="confinement")
+                            for m_i in range(N + 1)
+                        ]
+                        ax.set_title("Nash Equilibrium Policy")
                         ax.set_xlabel("Susceptible")
                         ax.set_ylabel("Infected")
                         handles, labels = ax.get_legend_handles_labels()
@@ -107,6 +117,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", type=str, default="outputs")
+    parser.add_argument("--output_dir", type=str, default=None)
     args = parser.parse_args()
     main(args)

@@ -52,17 +52,19 @@ def compute_social_optimum_policy(
         delta = np.max(np.abs(list({s: V[s] - V_k[s] for s in V}.values())))
         if delta < theta:
             logger.info(
-                f"Social Optimum computation converged after {k} iterations, Delta: {delta}"
+                f"Social Optimum computation - Converged after {k} iterations, Delta: {delta}"
             )
             break
         elif k >= max_iterations:
             logger.warning(
-                f"Max iterations reached: {max_iterations} without convergence, Delta: {delta}"
+                f"Social Optimum computation - Max iterations reached: {max_iterations} without convergence, Delta: {delta}"
             )
             break
         else:
             if k % 1000 == 0:
-                logger.debug(f"Iteration: {k}, Delta: {delta}")
+                logger.debug(
+                    f"Social Optimum computation - Iteration: {k}, Delta: {delta}"
+                )
 
     policy = {state: 0 for state in states}
     for state in states:
@@ -89,10 +91,21 @@ def main(args):
         args.cost_lockdown,
         args.discount_factor,
         args.theta,
+        args.max_iterations,
     )
 
-    logger.info(f"Policy: {policy}")
-    logger.info(f"Value function: {V}")
+    f, ax = plt.subplots()
+    for m_s, m_i in policy:
+        if policy[m_s, m_i] == 0:
+            ax.plot(m_s, m_i, "x", color="red", label="confinement")
+        else:
+            ax.plot(m_s, m_i, "o", color="green", label="max exposure")
+    ax.set_title("Social Optimum Policy")
+    ax.set_xlabel("Susceptible")
+    ax.set_ylabel("Infected")
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.show(block=True)
 
 
 if __name__ == "__main__":

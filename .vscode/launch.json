@@ -11,7 +11,7 @@
             "module": "experiments.sir_with_confinements.visualize_social_optimum_results",
             "args": [
                 "--images-dir",
-                "outputs/social_optimum/all/plot"
+                "outputs/social_optimum/olive_clock/plot"
             ]
         },
         {
@@ -25,24 +25,88 @@
             ]
         },
         {
-            "name": "Nash Equilibrium",
+            "name": "SIR: Compute Social optimum",
             "type": "debugpy",
             "request": "launch",
-            "module": "src.sir_with_confinements.nash_equilibrium",
+            "module": "src.sir_with_confinements.social_optimum",
             "args": [
                 "--N",
-                "15",
-                "--encounter_prob",
-                "0.02",
-                "--recovery_prob",
-                "0.046666666666666666667",
+                "30",
+                "--encounter_rate",
+                "0.3",
+                "--recovery_rate",
+                "0.7",
                 "--cost_infection",
-                "7.75",
+                "5.5",
                 "--cost_lockdown",
                 "1",
                 "--discount_factor",
                 "0.99"
             ]
-        }
+        },
+        {
+            "name": "SIR: Compute Nash Equilibrium",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.sir_with_confinements.nash_equilibrium",
+            "args": [
+                "--N",
+                "30",
+                "--encounter_rate",
+                "0.3",
+                "--recovery_rate",
+                "0.7",
+                "--cost_infection",
+                "5.5",
+                "--cost_lockdown",
+                "1",
+                "--discount_factor",
+                "0.99"
+            ]
+        },
+        {
+            "name": "SIRS: Compute Social optimum",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.sirs_with_confinements.social_optimum",
+            "args": [
+                "--N",
+                "30",
+                "--encounter_rate",
+                "0.7",
+                "--recovery_rate",
+                "0.3",
+                "--susceptible_rate",
+                "0.2",
+                "--cost_infection",
+                "5.5",
+                "--cost_lockdown",
+                "1",
+                "--discount_factor",
+                "0.99"
+            ]
+        },
+        {
+            "name": "SIRS: Compute Nash Equilibrium",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.sirs_with_confinements.nash_equilibrium",
+            "args": [
+                "--N",
+                "30",
+                "--encounter_rate",
+                "0.3",
+                "--recovery_rate",
+                "0.7",
+                "--susceptible_rate",
+                "0.2",
+                "--cost_infection",
+                "5.5",
+                "--cost_lockdown",
+                "1",
+                "--discount_factor",
+                "0.99"
+            ]
+        },
     ]
 }

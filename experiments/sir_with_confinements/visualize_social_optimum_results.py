@@ -20,7 +20,7 @@ class ImageApp:
             value=recovery_prob_N_[0]
         )  # Default value for the second part of the number
         self.cost_infection = tk.DoubleVar(value=cost_infection_[0])
-        self.cost_lockdown = tk.DoubleVar(value=cost_lockdown_[0])
+        self.cost_lockdown = tk.IntVar(value=cost_lockdown_[0])
 
         # add spinbox for N
         self.label_N = ttk.Label(self.master, text="N")
@@ -94,6 +94,13 @@ class ImageApp:
             print("Error loading image:", e)
 
 
+def str_to_num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
+
+
 def main(args):
     global images_dir
     global N_, encounter_prob_N_, recovery_prob_N_, cost_infection_, cost_lockdown_
@@ -104,11 +111,11 @@ def main(args):
         image_name.split("/")[-1].split(".png")[0].split("_")[1:]
         for image_name in image_names
     ]
-    N_ = sorted(list(set([int(param[0]) for param in params])))
-    encounter_prob_N_ = sorted(list(set([float(param[1]) for param in params])))
-    recovery_prob_N_ = sorted(list(set([float(param[2]) for param in params])))
-    cost_infection_ = sorted(list(set([float(param[3]) for param in params])))
-    cost_lockdown_ = sorted(list(set([float(param[4]) for param in params])))
+    N_ = sorted(list(set([str_to_num(param[0]) for param in params])))
+    encounter_prob_N_ = sorted(list(set([str_to_num(param[1]) for param in params])))
+    recovery_prob_N_ = sorted(list(set([str_to_num(param[2]) for param in params])))
+    cost_infection_ = sorted(list(set([str_to_num(param[3]) for param in params])))
+    cost_lockdown_ = sorted(list(set([str_to_num(param[4]) for param in params])))
 
     root = tk.Tk()
     root.title("Image Viewer")

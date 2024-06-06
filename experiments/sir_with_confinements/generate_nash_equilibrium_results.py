@@ -13,8 +13,10 @@ from src.sir_with_confinements.nash_equilibrium import compute_nash_equilibrium
 Ns = [30]
 encounter_probs_N = np.linspace(0.1, 1, 10)
 recovery_probs_N = np.linspace(0.1, 1, 10)
-costs_infection = np.linspace(1, 10, 5)
-costs_lockdown = np.linspace(1, 10, 5)
+costs_infection = np.concatenate((1 / np.linspace(1, 10, 5), np.linspace(1, 10, 5)))
+# costs_lockdown = np.linspace(1, 10, 5)
+costs_lockdown = [1]
+
 discount_factor = 0.99
 theta = 1e-6
 max_iterations = 5e2

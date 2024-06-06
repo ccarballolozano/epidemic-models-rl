@@ -8,8 +8,8 @@ import numpy as np
 
 def compute_best_response_policy(
     N: int,
-    encounter_prob: float,
-    recovery_prob: float,
+    encounter_rate: float,
+    recovery_rate: float,
     cost_infection: float,
     cost_lockdown: float,
     discount_factor: float,
@@ -17,8 +17,9 @@ def compute_best_response_policy(
     policy: dict,
 ) -> list[dict, dict]:
 
+    # Note that N is the total number of players, including the player for which we are computing the best response
+    unif = 1 / ((N) * (encounter_rate + recovery_rate))
     N = N - 1
-
     states = [
         (x, m_s, m_i)
         for x in ["S", "I"]
@@ -28,15 +29,18 @@ def compute_best_response_policy(
     ]
     # When Player i is susceptible
     p_I = (
-        lambda m_s, m_i, action: encounter_prob * action * (m_i / N)
+        lambda m_s, m_i, action: unif * encounter_rate * action * (m_i / N)
     )  # Player i infected
     q_I = (
-        lambda m_s, m_i, action: m_s
-        * encounter_prob
+        lambda m_s, m_i, action: unif
+        * m_s
+        * encounter_rate
         * policy["S", m_s, m_i]
         * (m_i / N)
     )  # Another player infected
-    q_R = lambda m_s, m_i, action: m_i * recovery_prob  # Another player recovered
+    q_R = (
+        lambda m_s, m_i, action: unif * m_i * recovery_rate
+    )  # Another player recovered
     p_S_hat = (
         lambda m_s, m_i, action: 1
         - p_I(m_s, m_i, action)
@@ -45,14 +49,16 @@ def compute_best_response_policy(
     )  # No changes in state
 
     # When Player i is infected
-    p_R_ = lambda m_s, m_i, action: recovery_prob  # Player i recovered
-    q_I_ = (
-        lambda m_s, m_i, action: m_s
-        * encounter_prob
-        * policy["S", m_s, m_i]
-        * (m_i + 1 / N)
-    )  # Another player gets infected
-    # q_R_ = lambda m_s, m_i, action: m_i * recovery_prob  # Another player recovered (as q_R)
+    p_R_ = lambda m_s, m_i, action: unif * recovery_rate  # Player i recovered
+
+    def q_I_(m_s, m_i, action):
+        # Another player gets infected
+        if m_s >= 1:
+            return unif * m_s * encounter_rate * policy["S", m_s, m_i] * ((m_i + 1) / N)
+        else:
+            return 0
+
+    # q_R_ = lambda m_s, m_i, action: m_i * recovery_rate  # Another player recovered (as q_R)
     p_I_hat = (
         lambda m_s, m_i, action: 1
         - p_R_(m_s, m_i, action)
@@ -136,10 +142,15 @@ def compute_best_response_policy(
 
 
 def main(args):
+    encounter_rate = args.encounter_rate
+    recovery_rate = args.recovery_rate
+    if args.probs_total:
+        encounter_rate = encounter_rate / args.N
+        recovery_rate = recovery_rate / args.N
     policy, V = compute_best_response_policy(
         args.N,
-        args.encounter_prob,
-        args.recovery_prob,
+        encounter_rate,
+        recovery_rate,
         args.cost_infection,
         args.cost_lockdown,
         args.discount_factor,
@@ -165,8 +176,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--N", type=int, default=15)
-    parser.add_argument("--encounter_prob", type=float, default=0.6)
-    parser.add_argument("--recovery_prob", type=float, default=0.4)
+    parser.add_argument("--encounter_rate", type=float, default=0.6)
+    parser.add_argument("--recovery_rate", type=float, default=0.4)
     parser.add_argument("--cost_infection", type=float, default=1)
     parser.add_argument("--cost_lockdown", type=float, default=2)
     parser.add_argument("--discount_factor", type=float, default=0.99)

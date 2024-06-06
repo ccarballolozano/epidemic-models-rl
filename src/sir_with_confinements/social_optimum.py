@@ -10,8 +10,8 @@ import numpy as np
 
 def compute_social_optimum_policy(
     N: int,
-    encounter_prob: float,
-    recovery_prob: float,
+    encounter_rate: float,
+    recovery_rate: float,
     cost_infection: float,
     cost_lockdown: float,
     discount_factor: float,
@@ -19,8 +19,9 @@ def compute_social_optimum_policy(
     max_iterations: int = 1e6,
 ) -> list[dict, dict]:
 
-    q_I = lambda m_s, m_i, action: encounter_prob * action * m_s * m_i / N
-    q_R = lambda m_s, m_i, action: recovery_prob * m_i
+    unif = 1 / ((N) * (encounter_rate + recovery_rate))
+    q_I = lambda m_s, m_i, action: unif * encounter_rate * action * m_s * m_i / N
+    q_R = lambda m_s, m_i, action: unif * recovery_rate * m_i
     q_hat = lambda m_s, m_i, action: 1 - q_I(m_s, m_i, action) - q_R(m_s, m_i, action)
 
     states = [
@@ -83,10 +84,12 @@ def compute_social_optimum_policy(
 
 
 def main(args):
+    import os
+
     policy, V = compute_social_optimum_policy(
         args.N,
-        args.encounter_prob,
-        args.recovery_prob,
+        args.encounter_rate,
+        args.recovery_rate,
         args.cost_infection,
         args.cost_lockdown,
         args.discount_factor,
@@ -105,14 +108,20 @@ def main(args):
     ax.set_ylabel("Infected")
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys())
+    plt.savefig(
+        os.path.join(
+            f"social_plt_{args.N}_{args.encounter_rate*args.N}_{args.recovery_rate*args.N}_{args.cost_infection}_{args.cost_lockdown}.png",
+        )
+    )
     plt.show(block=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--N", type=int, default=15)
-    parser.add_argument("--encounter_prob", type=float, default=0.6)
-    parser.add_argument("--recovery_prob", type=float, default=0.4)
+    parser.add_argument("--encounter_rate", type=float, default=0.6)
+    parser.add_argument("--recovery_rate", type=float, default=0.4)
     parser.add_argument("--cost_infection", type=float, default=6.7)
     parser.add_argument("--cost_lockdown", type=float, default=2)
     parser.add_argument("--discount_factor", type=float, default=0.99)

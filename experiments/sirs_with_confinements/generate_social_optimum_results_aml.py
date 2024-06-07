@@ -29,9 +29,9 @@ def main(args):
     )
 
     cmd = command(
-        experiment_name="generate_social_optimum_results",
+        experiment_name="SIRS_generate_social_optimum_results",
         code="./",
-        command="python -m experiments.sir_with_confinements.generate_social_optimum_results --output_dir ./outputs",
+        command="python -m experiments.sirs_with_confinements.generate_social_optimum_results --output_dir ./outputs",
         compute=COMPUTE_NAME,
         environment=f"{ENVIRONMENT_NAME}:{ENVIRONMENT_VERSION}",
     )

@@ -15,13 +15,23 @@
             ]
         },
         {
-            "name": "experiments.sir_with_confinements.generate_nash_equilibrium_results",
+            "name": "experiments.sirs_with_confinements.generate_social_optimum_results",
             "type": "debugpy",
             "request": "launch",
-            "module": "experiments.sir_with_confinements.generate_nash_equilibrium_results",
+            "module": "experiments.sirs_with_confinements.generate_social_optimum_results",
             "args": [
                 "--output_dir",
-                "outputs/nash_equilibrium/all/plot"
+                "outputs/social_optimum/00test/plot"
+            ]
+        },
+        {
+            "name": "experiments.sirs_with_confinements.generate_nash_equilibrium_results",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.sirs_with_confinements.generate_nash_equilibrium_results",
+            "args": [
+                "--output_dir",
+                "outputs/nash_equilibrium/00test/plot"
             ]
         },
         {
@@ -73,11 +83,13 @@
                 "--N",
                 "30",
                 "--encounter_rate",
-                "0.7",
-                "--recovery_rate",
                 "0.3",
+                "--recovery_rate",
+                "0.7",
                 "--susceptible_rate",
                 "0.2",
+                "--vaccination_rate",
+                "0.3",
                 "--cost_infection",
                 "5.5",
                 "--cost_lockdown",
@@ -100,6 +112,8 @@
                 "0.7",
                 "--susceptible_rate",
                 "0.2",
+                "--vaccination_rate",
+                "0.3",
                 "--cost_infection",
                 "5.5",
                 "--cost_lockdown",

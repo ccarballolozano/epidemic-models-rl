@@ -11,6 +11,7 @@ def compute_nash_equilibrium(
     encounter_rate: float,
     recovery_rate: float,
     susceptible_rate: float,
+    vaccination_rate: float,
     cost_infection: float,
     cost_lockdown: float,
     discount_factor: float,
@@ -34,6 +35,7 @@ def compute_nash_equilibrium(
             encounter_rate,
             recovery_rate,
             susceptible_rate,
+            vaccination_rate,
             cost_infection,
             cost_lockdown,
             discount_factor,
@@ -70,6 +72,7 @@ def main(args):
         args.encounter_rate,
         args.recovery_rate,
         args.susceptible_rate,
+        args.vaccination_rate,
         args.cost_infection,
         args.cost_lockdown,
         args.discount_factor,
@@ -125,7 +128,7 @@ def main(args):
     ax.legend(by_label.values(), by_label.keys())
     plt.savefig(
         os.path.join(
-            f"sirs_nash_plt_{args.N}_{args.encounter_rate}_{args.recovery_rate}_{args.susceptible_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
+            f"sirs_nash_plt_{args.N}_{args.encounter_rate}_{args.recovery_rate}_{args.susceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
         )
     )
     plt.show(block=True)
@@ -138,6 +141,7 @@ if __name__ == "__main__":
     parser.add_argument("--encounter_rate", type=float, default=0.6)
     parser.add_argument("--recovery_rate", type=float, default=0.4)
     parser.add_argument("--susceptible_rate", type=float, default=0.2)
+    parser.add_argument("--vaccination_rate", type=float, default=0.2)
     parser.add_argument("--cost_infection", type=float, default=1.0)
     parser.add_argument("--cost_lockdown", type=float, default=1.0)
     parser.add_argument("--discount_factor", type=float, default=0.9)

@@ -11,6 +11,7 @@ def compute_best_response_policy(
     encounter_rate: float,
     recovery_rate: float,
     susceptible_rate: float,
+    vaccination_rate: float,
     cost_infection: float,
     cost_lockdown: float,
     discount_factor: float,
@@ -19,7 +20,9 @@ def compute_best_response_policy(
 ) -> list[dict, dict]:
 
     # Note that N is the total number of players, including the player for which we are computing the best response
-    unif = 1 / ((N) * (encounter_rate + recovery_rate + susceptible_rate))
+    unif = 1 / (
+        (N) * (encounter_rate + recovery_rate + susceptible_rate + vaccination_rate)
+    )
     N = N - 1
     states = [
         (x, m_s, m_i)
@@ -34,6 +37,7 @@ def compute_best_response_policy(
     )  # Player i infected
     p_R = lambda m_s, m_i, action: unif * recovery_rate  # Player i recovered
     p_S = lambda m_s, m_i, action: unif * susceptible_rate  # Player i to susceptible
+    p_V = lambda m_s, m_i, action: unif * vaccination_rate  # Player i vaccinated
     q_I = (
         lambda m_s, m_i, action: unif
         * m_s
@@ -49,15 +53,14 @@ def compute_best_response_policy(
         else:
             return 0
 
-    q_R = (
-        lambda m_s, m_i, action: unif * m_i * recovery_rate
-    )  # Another player recovered
-    q_S = (
-        lambda m_s, m_i, action: unif * susceptible_rate * (N - m_s - m_i)
-    )  # No changes in state
+    q_R = lambda m_s, m_i, action: unif * m_i * recovery_rate
+    q_S = lambda m_s, m_i, action: unif * susceptible_rate * (N - m_s - m_i)
+    q_V = lambda m_s, m_i, action: unif * vaccination_rate * m_s
     p_S_hat = (
         lambda m_s, m_i, action: 1
         - p_I(m_s, m_i, action)
+        - p_V(m_s, m_i, action)
+        - q_V(m_s, m_i, action)
         - q_I(m_s, m_i, action)
         - q_R(m_s, m_i, action)
         - q_S(m_s, m_i, action)
@@ -68,6 +71,7 @@ def compute_best_response_policy(
         - q_I_(m_s, m_i, action)
         - q_R(m_s, m_i, action)
         - q_S(m_s, m_i, action)
+        - q_V(m_s, m_i, action)
     )
     p_R_hat = (
         lambda m_s, m_i, action: 1
@@ -75,6 +79,7 @@ def compute_best_response_policy(
         - q_S(m_s, m_i, action)
         - q_I(m_s, m_i, action)
         - q_R(m_s, m_i, action)
+        - q_V(m_s, m_i, action)
     )
 
     V = defaultdict(lambda: 0, {state: 0 for state in states})
@@ -84,6 +89,8 @@ def compute_best_response_policy(
     )
     next_expected_value_s = (
         lambda m_s, m_i, action, V: p_I(m_s, m_i, action) * V["I", m_s, m_i]
+        + p_V(m_s, m_i, action) * V["R", m_s, m_i]
+        + q_V(m_s, m_i, action) * V["S", m_s - 1, m_i]
         + q_I(m_s, m_i, action) * V["S", m_s - 1, m_i + 1]
         + q_R(m_s, m_i, action) * V["S", m_s, m_i - 1]
         + q_S(m_s, m_i, action) * V["S", m_s + 1, m_i]
@@ -91,6 +98,7 @@ def compute_best_response_policy(
     )
     next_expected_value_i = (
         lambda m_s, m_i, action, V: q_I_(m_s, m_i, action) * V["I", m_s - 1, m_i + 1]
+        + q_V(m_s, m_i, action) * V["I", m_s - 1, m_i]
         + q_R(m_s, m_i, action) * V["I", m_s, m_i - 1]
         + q_S(m_s, m_i, action) * V["I", m_s + 1, m_i]
         + p_R(m_s, m_i, action) * V["R", m_s, m_i]
@@ -98,6 +106,7 @@ def compute_best_response_policy(
     )
     next_expected_value_r = (
         lambda m_s, m_i, action, V: p_S(m_s, m_i, action) * V["S", m_s, m_i]
+        + q_V(m_s, m_i, action) * V["R", m_s - 1, m_i]
         + q_S(m_s, m_i, action) * V["R", m_s + 1, m_i]
         + q_I(m_s, m_i, action) * V["R", m_s - 1, m_i + 1]
         + q_R(m_s, m_i, action) * V["R", m_s, m_i - 1]
@@ -184,6 +193,7 @@ def main(args):
         args.encounter_rate,
         args.recovery_rate,
         args.susceptible_rate,
+        args.vaccination_rate,
         args.cost_infection,
         args.cost_lockdown,
         args.discount_factor,
@@ -212,6 +222,7 @@ if __name__ == "__main__":
     parser.add_argument("--encounter_rate", type=float, default=0.6)
     parser.add_argument("--recovery_rate", type=float, default=0.4)
     parser.add_argument("--susceptible_rate", type=float, default=0.2)
+    parser.add_argument("--vaccination_rate", type=float, default=0.2)
     parser.add_argument("--cost_infection", type=float, default=1)
     parser.add_argument("--cost_lockdown", type=float, default=2)
     parser.add_argument("--discount_factor", type=float, default=0.99)

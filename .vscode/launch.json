@@ -8,10 +8,22 @@
             "name": "Visualize results",
             "type": "debugpy",
             "request": "launch",
-            "module": "experiments.sir_with_confinements.visualize_social_optimum_results",
+            "module": "experiments.sirs_with_confinements.visualize_social_optimum_results",
             "args": [
                 "--images-dir",
-                "outputs/social_optimum/olive_clock/plot"
+                "outputs/social_optimum/20240626/plot"
+            ]
+        },
+        {
+            "name": "Compare proportion results",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.sirs_with_confinements.compare_confinement_proportion_results",
+            "args": [
+                "--nash_equilibrium_dir",
+                "outputs/nash_equilibrium/20240626/policy",
+                "--social_optimum_dir",
+                "outputs/social_optimum/20240626/policy"
             ]
         },
         {
@@ -121,6 +133,18 @@
                 "--discount_factor",
                 "0.99"
             ]
+        },
+        {
+            "name": "SIRS: AML Experiment - Nash Equilibrium",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.sirs_with_confinements.generate_nash_equilibrium_results_aml",
+        },
+        {
+            "name": "SIRS: AML Experiment - Social Optimum",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.sirs_with_confinements.generate_social_optimum_results_aml",
         },
     ]
 }

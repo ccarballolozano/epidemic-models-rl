@@ -11,12 +11,11 @@ from src.sirs_with_confinements.social_optimum import compute_social_optimum_pol
 
 
 Ns = [30]
-encounter_rates = np.linspace(0.1, 1, 10)
-recovery_rates = np.linspace(0.1, 1, 10)
-susceptible_rates = np.linspace(0.0, 1, 11)
-vaccination_rates = np.linspace(0.0, 1, 11)
-costs_infection = np.concatenate((1 / np.linspace(1, 10, 5), np.linspace(1, 10, 5)))
-# costs_lockdown = np.linspace(1, 10, 5)
+encounter_rates = [0.01, 0.1, 1, 10, 100]
+recovery_rates = [0.01, 0.1, 1, 10, 100]
+susceptible_rates = [0, 0.01, 0.1, 1, 10, 100]
+vaccination_rates = [0, 0.01, 0.1, 1, 10, 100]
+costs_infection = [0.01, 0.1, 1, 10, 100]
 costs_lockdown = [1]
 
 discount_factor = 0.99
@@ -119,9 +118,10 @@ def main(args):
                                     os.path.join(
                                         output_dir,
                                         "plot",
-                                        f"plt__{N}_{encounter_rate}_{recovery_rate}_{susceptible_rate}_{vaccination_rate}_{cost_infection}_{cost_lockdown}.png",
+                                        f"plt_{N}_{encounter_rate}_{recovery_rate}_{susceptible_rate}_{vaccination_rate}_{cost_infection}_{cost_lockdown}.png",
                                     )
                                 )
+                                plt.close("all")
 
 
 if __name__ == "__main__":

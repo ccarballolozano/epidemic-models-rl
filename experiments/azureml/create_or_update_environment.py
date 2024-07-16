@@ -1,9 +1,8 @@
+import os
+
 from azure.ai.ml import MLClient
-from azure.ai.ml.entities import Environment, BuildContext
+from azure.ai.ml.entities import Environment
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-
-
-from .config import *
 
 try:
     # Attempt to use default Azure Credential
@@ -14,20 +13,22 @@ try:
 except Exception as ex:
     # Fall back to InteractiveBrowserCredential if Service Principal credentials fail
     # This will open a browser page for authentication
-    credential = InteractiveBrowserCredential()
+    credential = InteractiveBrowserCredential(
+        tenant_id="944a88f0-8401-4e30-ab9b-438f9bade44d"
+    )
 
     # Get environment variables
 ml_client = MLClient(
     credential=credential,
-    subscription_id=SUBSCRIPTION_ID,
-    resource_group_name=RESOURCE_GROUP_NAME,
-    workspace_name=WORKSPACE_NAME,
+    subscription_id=os.environ["SUBSCRIPTION_ID"],
+    resource_group_name=os.environ["RESOURCE_GROUP_NAME"],
+    workspace_name=os.environ["WORKSPACE_NAME"],
 )
 
 env_docker_conda = Environment(
     image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
-    conda_file="../environment.yml",
-    name=ENVIRONMENT_NAME,
+    conda_file="./environment.yml",
+    name=os.environ["ENVIRONMENT_NAME"],
     description="Environment created for Research Experiments",
     tags={},
 )

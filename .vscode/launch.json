@@ -47,46 +47,6 @@
             ]
         },
         {
-            "name": "SIR: Compute Social optimum",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "src.sir_with_confinements.social_optimum",
-            "args": [
-                "--N",
-                "30",
-                "--encounter_rate",
-                "0.3",
-                "--recovery_rate",
-                "0.7",
-                "--cost_infection",
-                "5.5",
-                "--cost_lockdown",
-                "1",
-                "--discount_factor",
-                "0.99"
-            ]
-        },
-        {
-            "name": "SIR: Compute Nash Equilibrium",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "src.sir_with_confinements.nash_equilibrium",
-            "args": [
-                "--N",
-                "30",
-                "--encounter_rate",
-                "0.3",
-                "--recovery_rate",
-                "0.7",
-                "--cost_infection",
-                "5.5",
-                "--cost_lockdown",
-                "1",
-                "--discount_factor",
-                "0.99"
-            ]
-        },
-        {
             "name": "SIRS: Compute Social optimum",
             "type": "debugpy",
             "request": "launch",
@@ -119,20 +79,27 @@
                 "--N",
                 "30",
                 "--encounter_rate",
-                "0.3",
+                "0.01",
                 "--recovery_rate",
-                "0.7",
-                "--susceptible_rate",
-                "0.2",
+                "0.01",
+                "--resusceptible_rate",
+                "0.0",
                 "--vaccination_rate",
-                "0.3",
+                "0.01",
                 "--cost_infection",
-                "5.5",
+                "10",
                 "--cost_lockdown",
                 "1",
                 "--discount_factor",
                 "0.99"
             ]
+        },
+        {
+            "name": "AML: Create environment",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.azureml.create_or_update_environment",
+            "envFile": "${workspaceFolder}/.env"
         },
         {
             "name": "SIRS: AML Experiment - Nash Equilibrium",

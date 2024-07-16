@@ -10,7 +10,7 @@ def compute_best_response_policy(
     N: int,
     encounter_rate: float,
     recovery_rate: float,
-    susceptible_rate: float,
+    resusceptible_rate: float,
     vaccination_rate: float,
     cost_infection: float,
     cost_lockdown: float,
@@ -21,7 +21,7 @@ def compute_best_response_policy(
 
     # Note that N is the total number of players, including the player for which we are computing the best response
     unif = 1 / (
-        (N) * (encounter_rate + recovery_rate + susceptible_rate + vaccination_rate)
+        (N) * (encounter_rate + recovery_rate + resusceptible_rate + vaccination_rate)
     )
     N = N - 1
     states = [
@@ -36,25 +36,25 @@ def compute_best_response_policy(
         lambda m_s, m_i, action: unif * encounter_rate * action * (m_i / N)
     )  # Player i infected
     p_R = lambda m_s, m_i, action: unif * recovery_rate  # Player i recovered
-    p_S = lambda m_s, m_i, action: unif * susceptible_rate  # Player i to susceptible
+    p_S = lambda m_s, m_i, action: unif * resusceptible_rate  # Player i to susceptible
     p_V = lambda m_s, m_i, action: unif * vaccination_rate  # Player i vaccinated
     q_I = (
         lambda m_s, m_i, action: unif
         * m_s
         * encounter_rate
-        * policy["S", m_s, m_i]
+        * policy[m_s, m_i]
         * (m_i / N)
     )  # Another player infected
 
     def q_I_(m_s, m_i, action):
         # Another player gets infected
         if m_s >= 1:
-            return unif * m_s * encounter_rate * policy["S", m_s, m_i] * ((m_i + 1) / N)
-        else:
+            return unif * m_s * encounter_rate * policy[m_s, m_i] * ((m_i + 1) / N)
+        else:  # TODO: Remove else, as not required.
             return 0
 
     q_R = lambda m_s, m_i, action: unif * m_i * recovery_rate
-    q_S = lambda m_s, m_i, action: unif * susceptible_rate * (N - m_s - m_i)
+    q_S = lambda m_s, m_i, action: unif * resusceptible_rate * (N - m_s - m_i)
     q_V = lambda m_s, m_i, action: unif * vaccination_rate * m_s
     p_S_hat = (
         lambda m_s, m_i, action: 1
@@ -192,7 +192,7 @@ def main(args):
         args.N,
         args.encounter_rate,
         args.recovery_rate,
-        args.susceptible_rate,
+        args.resusceptible_rate,
         args.vaccination_rate,
         args.cost_infection,
         args.cost_lockdown,
@@ -202,8 +202,9 @@ def main(args):
     logger.info(f"Policy: {policy}")
 
     f, axs = plt.subplots(1, 1)
-    for x, m_s, m_i in policy:
-        if policy["S", m_s, m_i] == 0:
+    policy_s = {k[1:]: v for k, v in policy.items() if k[0] == "S"}
+    for m_s, m_i in policy_s:
+        if policy_s[m_s, m_i] == 0:
             axs.plot(m_s, m_i, "x", color="red", label="confinement")
         else:
             axs.plot(m_s, m_i, "o", color="green", label="max exposure")
@@ -221,7 +222,7 @@ if __name__ == "__main__":
     parser.add_argument("--N", type=int, default=15)
     parser.add_argument("--encounter_rate", type=float, default=0.6)
     parser.add_argument("--recovery_rate", type=float, default=0.4)
-    parser.add_argument("--susceptible_rate", type=float, default=0.2)
+    parser.add_argument("--resusceptible_rate", type=float, default=0.2)
     parser.add_argument("--vaccination_rate", type=float, default=0.2)
     parser.add_argument("--cost_infection", type=float, default=1)
     parser.add_argument("--cost_lockdown", type=float, default=2)

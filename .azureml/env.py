@@ -1,3 +1,0 @@
-SUBSCRIPTION_ID = "899bfb35-623a-4bbf-9221-a47277fca496"
-RESOURCE_GROUP_NAME = "rg-research-001"
-WORKSPACE_NAME = "mlw-research-001"

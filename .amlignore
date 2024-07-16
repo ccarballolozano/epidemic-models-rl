@@ -153,6 +153,3 @@ cython_debug/
 
 outputs/
 mlruns/
-
-# Images
-*.png

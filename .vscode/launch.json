@@ -53,6 +53,30 @@
             "module": "src.sirs_with_confinements.social_optimum",
             "args": [
                 "--N",
+                "4",
+                "--encounter_rate",
+                "0.8",
+                "--recovery_rate",
+                "0.3",
+                "--resusceptible_rate",
+                "0.15",
+                "--vaccination_rate",
+                "0.1",
+                "--cost_infection",
+                "1.5",
+                "--cost_lockdown",
+                "1",
+                "--discount_factor",
+                "0.99"
+            ]
+        },
+        {
+            "name": "SIRS: Compute Social optimum - Q iteration",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "experiments.rl.q_iteration",
+            "args": [
+                "--size",
                 "3",
                 "--encounter_rate",
                 "0.8",

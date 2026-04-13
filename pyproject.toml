@@ -1,0 +1,13 @@
+[project]
+name = "epidemic-models-rl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "azure-ai-ml>=1.32.0",
+    "azure-identity>=1.25.3",
+    "azureml-mlflow>=1.62.0.post2",
+    "ipykernel>=7.2.0",
+    "mlflow>=3.9.0",
+]

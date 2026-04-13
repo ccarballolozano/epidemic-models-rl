@@ -9,7 +9,7 @@ import numpy as np
 
 
 def compute_social_optimum_policy(
-    N: int,
+    size: int,
     encounter_rate: float,
     recovery_rate: float,
     resusceptible_rate: float,
@@ -22,12 +22,13 @@ def compute_social_optimum_policy(
 ) -> list[dict, dict]:
 
     unif = 1 / (
-        (N) * (encounter_rate + recovery_rate + resusceptible_rate + vaccination_rate)
+        (size)
+        * (encounter_rate + recovery_rate + resusceptible_rate + vaccination_rate)
     )
     w_V = lambda m_s, m_i, action: unif * vaccination_rate * m_s
-    w_I = lambda m_s, m_i, action: unif * encounter_rate * action * m_s * m_i / N
+    w_I = lambda m_s, m_i, action: unif * encounter_rate * action * m_s * m_i / size
     w_R = lambda m_s, m_i, action: unif * recovery_rate * m_i
-    w_S = lambda m_s, m_i, action: unif * resusceptible_rate * (N - m_s - m_i)
+    w_S = lambda m_s, m_i, action: unif * resusceptible_rate * (size - m_s - m_i)
     w_hat = (
         lambda m_s, m_i, action: 1
         - w_V(m_s, m_i, action)
@@ -37,13 +38,16 @@ def compute_social_optimum_policy(
     )
 
     states = [
-        (m_s, m_i) for m_s in range(N + 1) for m_i in range(N + 1) if m_s + m_i <= N
+        (m_s, m_i)
+        for m_s in range(size + 1)
+        for m_i in range(size + 1)
+        if m_s + m_i <= size
     ]
     V = defaultdict(lambda: 0, {state: 0 for state in states})
 
     cost = lambda m_s, m_i, action: (cost_lockdown - action) * (
-        m_s / N
-    ) + cost_infection * (m_i / N)
+        m_s / size
+    ) + cost_infection * (m_i / size)
     next_expected_value = (
         lambda m_s, m_i, action, V: w_I(m_s, m_i, action) * V[m_s - 1, m_i + 1]
         + w_V(m_s, m_i, action) * V[m_s - 1, m_i]
@@ -101,7 +105,7 @@ def main(args):
     import os
 
     policy, V = compute_social_optimum_policy(
-        args.N,
+        args.size,
         args.encounter_rate,
         args.recovery_rate,
         args.resusceptible_rate,
@@ -127,7 +131,7 @@ def main(args):
     ax.legend(by_label.values(), by_label.keys())
     plt.savefig(
         os.path.join(
-            f"sirs_social_plt_{args.N}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
+            f"sirs_social_plt_{args.size}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
         )
     )
     plt.show(block=True)
@@ -135,7 +139,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--N", type=int, default=15)
+    parser.add_argument("--size", type=int, default=15)
     parser.add_argument("--encounter_rate", type=float, default=0.6)
     parser.add_argument("--recovery_rate", type=float, default=0.4)
     parser.add_argument("--resusceptible_rate", type=float, default=0.2)

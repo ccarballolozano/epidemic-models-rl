@@ -23,25 +23,16 @@ class SIRSEnv(gym.Env):
         self.cost_infection = cost_infection
         self.cost_lockdown = cost_lockdown
 
-        self.uninfected_steps_to_done = 3
+        self.uninfected_steps_to_done = 1
 
         self.action_space = gym.spaces.Discrete(2)
         self.observation_space = gym.spaces.MultiDiscrete([size + 1, size + 1])
-        self.state = None
+        self._state: np.ndarray = None
 
-    def reset(
-        self, seed: int | None = None, options: dict | None = None
-    ) -> tuple[int, int]:
-        super().reset(seed=seed, options=options)
-        self.uninfected_steps = 0
-        initial_states = [
-            (m_s, m_i)
-            for m_s in range(self.size + 1)
-            for m_i in range(self.size + 1)
-            if m_s + m_i <= self.size and m_s >= 1 and m_i >= 1  # and m_i > 0
-        ]
-        self.state = initial_states[np.random.choice(len(initial_states))]
-        return np.array(self.state), self._get_info()
+        self._terminal_states = [(m_s, 0) for m_s in range(size + 1)]
+
+    def _get_obs(self) -> np.ndarray:
+        return self._state
 
     def _get_info(self) -> dict[str, Any]:
         return {
@@ -54,6 +45,32 @@ class SIRSEnv(gym.Env):
             "cost_lockdown": self.cost_lockdown,
         }
 
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[int, int]:
+        super().reset(seed=seed)
+        if options is not None and "initial_state" in options:
+            allowed_states = [
+                (m_s, m_i)
+                for m_s in range(self.size + 1)
+                for m_i in range(self.size + 1)
+                if m_s + m_i <= self.size
+            ]
+            initial_state = tuple(options["initial_state"])
+            assert (
+                initial_state in allowed_states
+            ), f"Invalid initial state {initial_state}"
+            self._state = initial_state
+        else:
+            default_states = [
+                (m_s, m_i)
+                for m_s in range(self.size + 1)
+                for m_i in range(self.size + 1)
+                if m_s + m_i <= self.size
+            ]
+            self._state = default_states[np.random.choice(len(default_states))]
+        return self._get_obs(), self._get_info()
+
     def _cost_fn(self, state: tuple[int, int], action: int) -> float:
         m_s, m_i = state
         cost = (self.cost_lockdown - action) * (
@@ -62,7 +79,7 @@ class SIRSEnv(gym.Env):
         return cost
 
     def step(self, action: int) -> tuple[tuple[int, int], float, bool, bool, Any]:
-        m_s, m_i = self.state
+        m_s, m_i = self._state
         unif = 1 / (
             self.size
             * (
@@ -91,15 +108,6 @@ class SIRSEnv(gym.Env):
                 p=[w_I, w_V, w_R, w_S, w_hat],
             )
         ]
-        reward = -self._cost_fn(self.state, action)
-        # Episode ends when there are multiple state changes without any infection
-        if (
-            next_state[1] == self.state[1] == 0
-        ):  # TODO: In this env, if state[1] == 0, then next_state[1] == 0
-            if next_state[0] != self.state[0]:
-                self.uninfected_steps += 1
-        else:
-            self.unifected_steps = 0
-        self.state = next_state
-        done = self.uninfected_steps >= self.uninfected_steps_to_done
-        return np.array(self.state), reward, done, False, self._get_info()
+        reward = -self._cost_fn(self._state, action)
+        self._state = next_state
+        return np.array(self._state), reward, False, False, self._get_info()

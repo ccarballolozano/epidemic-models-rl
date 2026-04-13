@@ -111,45 +111,24 @@ def main(args):
         args.theta,
         args.max_iterations,
     )
-    n_confinement_states = 0
-    n_total_states = 0
-    n_confinement_states_valid = 0
-    n_total_states_valid = 0
-    for m_s, m_i in policy:
-        if policy[m_s, m_i] == 0:
-            n_confinement_states += 1
-            if m_s > 0:
-                n_confinement_states_valid += 1
-        n_total_states += 1
-        if m_s > 0:
-            n_total_states_valid += 1
-    print(f"Total states: {n_total_states}")
-    print(f"Number confinement states: {n_confinement_states}")
-    print(f"Proportion of confinement states: {n_confinement_states/n_total_states}")
-    print(f"Total valid states: {n_total_states_valid}")
-    print(f"Number valid confinement states: {n_confinement_states_valid}")
-    print(
-        f"Proportion of valid confinement states: {n_confinement_states_valid/n_total_states_valid}"
-    )
+
     f, ax = plt.subplots()
     for m_s, m_i in policy:
         if policy[m_s, m_i] == 0:
-            ax.plot(m_s, m_i, "x", color="red", label="$\pi^{opt}=0$")
+            ax.plot(m_s, m_i, "x", color="red", label=r"$\pi^{opt}=0$")
         else:
-            ax.plot(m_s, m_i, "o", color="green", label="$\pi^{opt}=1$")
+            ax.plot(m_s, m_i, "o", color="green", label=r"$\pi^{opt}=1$")
+    # ax.set_title("Social Optimum Policy")
+    ax.set_xlabel("$M_S$")
+    ax.set_ylabel("$M_I$")
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    sorted_by_label = {k: by_label[k] for k in sorted(by_label)}
-    ax.legend(sorted_by_label.values(), sorted_by_label.keys(), fontsize=14)
-    ax.set_xlabel("$M_S$", fontsize=14)
-    ax.set_ylabel("$M_I$", fontsize=14)
-    f.tight_layout()
+    ax.legend(by_label.values(), by_label.keys())
     f.savefig(
         os.path.join(
             args.output_dir,
             f"sirs_social_plt_{args.size}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
-        ),
-        bbox_inches="tight",
+        )
     )
     f.show()
     f, ax = plt.subplots()

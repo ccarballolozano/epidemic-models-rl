@@ -79,25 +79,38 @@ def main(args):
         args.theta,
         args.max_iterations,
     )
+
     import matplotlib.pyplot as plt
     import os
 
+    n_confinement_states = 0
+    n_total_states = 0
+    for m_s, m_i in policy_nash:
+        if policy_nash[m_s, m_i] == 0:
+            n_confinement_states += 1
+        n_total_states += 1
+    print(f"Total states: {n_total_states}")
+    print(f"Number confinement states: {n_confinement_states}")
+    print(f"Proportion of confinement states: {n_confinement_states/n_total_states}")
     f, ax = plt.subplots()
     for m_s, m_i in policy_nash:
         if policy_nash[m_s, m_i] == 0:
-            ax.plot(m_s, m_i, "x", color="red", label="confinement")
+            ax.plot(m_s, m_i, "x", color="red", label="$\pi^{sne}=0$")
         else:
-            ax.plot(m_s, m_i, "o", color="green", label="max exposure")
-    ax.set_title("Nash Equilibrium Policy. State $(M_S, M_I)$")
-    ax.set_xlabel("Susceptible")
-    ax.set_ylabel("Infected")
+            ax.plot(m_s, m_i, "o", color="green", label="$\pi^{sne}=1$")
+    # ax.set_title("Nash Equilibrium Policy. State $(M_S, M_I)$")
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys())
+    sorted_by_label = {k: by_label[k] for k in sorted(by_label)}
+    ax.legend(sorted_by_label.values(), sorted_by_label.keys(), fontsize=14)
+    ax.set_xlabel("$M_S$", fontsize=14)
+    ax.set_ylabel("$M_I$", fontsize=14)
+    f.tight_layout()
     plt.savefig(
         os.path.join(
             f"sirs_nash_plt_{args.N}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
-        )
+        ),
+        bbox_inches="tight",
     )
     plt.show(block=True)
     print(0)

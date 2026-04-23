@@ -66,13 +66,26 @@ def compute_state_action_value_error(Q_true: np.array, Q_aprox: np.array):
     )
 
 
-def compute_state_value_relative_error(V_true: np.array, V_approx: np.array):
+def compute_state_value_relative_error(
+    V_true: np.array, V_approx: np.array, subset: str = None
+):
     assert V_true.shape == V_approx.shape, "Shapes of V_true and V_approx must match"
 
     # Apply the mask to the true and approximated V-values
     mask = get_state_values_mask(V_approx.shape[0]).astype(float)
     mask_zeros = (V_true == 0).astype(float)  # TODO: Avoid zeros removal
     mask = np.ma.mask_or(mask, mask_zeros)
+    if subset is not None:
+        if subset == "uninfected":
+            mask_infected = np.ones(V_approx.shape)
+            mask_infected[:, 0] = 0
+            mask = np.ma.mask_or(mask, np.ma.make_mask(mask_infected))
+        elif subset == "infected":
+            mask_uninfected = np.zeros(V_approx.shape)
+            mask_uninfected[:, 0] = 1
+            mask = np.ma.mask_or(mask, np.ma.make_mask(mask_uninfected))
+        else:
+            raise ValueError(f"Invalid subset {subset}")
     V_true_masked = np.ma.array(V_true, mask=mask)
     V_approx_masked = np.ma.array(V_approx, mask=mask)
 

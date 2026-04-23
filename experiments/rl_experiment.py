@@ -250,14 +250,14 @@ with mlflow.start_run():
             np.max(Q_true, axis=-1), np.max(Q, axis=-1)
         )
         metrics = {
-            "error_min": errors[0],
-            "error_mean": errors[1],
-            "error_median": errors[2],
-            "error_max": errors[3],
-            "relative_error_min": relative_errors[0],
-            "relative_error_mean": relative_errors[1],
-            "relative_error_median": relative_errors[2],
-            "relative_error_max": relative_errors[3],
+            "min_error": errors[0],
+            "mean_error": errors[1],
+            "median_error": errors[2],
+            "max_error": errors[3],
+            "relative_min_error": relative_errors[0],
+            "relative_mean_error": relative_errors[1],
+            "relative_median_error": relative_errors[2],
+            "relative_max_error": relative_errors[3],
             "lr": alpha,
         }
         mlflow.log_metrics(metrics, step=episode)

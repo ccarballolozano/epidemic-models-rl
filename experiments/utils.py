@@ -68,13 +68,27 @@ def fetch_metrics_for_runs(
 def compute_mean_and_ci(
     df: pd.DataFrame,
     confidence: float = 0.95,
+    use_t: bool = False,
 ) -> tuple[pd.Index, np.ndarray, np.ndarray, np.ndarray]:
-    """Return (steps, mean, lo, hi) arrays from a tidy metric DataFrame."""
+    """Return (steps, mean, lo, hi) arrays from a tidy metric DataFrame.
+
+    Parameters
+    ----------
+    confidence:
+        Confidence level (default 0.95).
+    use_t:
+        When True, use the Student's t critical value (exact for small n).
+        When False (default), use the normal (z) critical value — appropriate
+        when the number of runs is large.
+    """
     grouped = df.groupby("step")["value"]
     mean = grouped.mean()
     sem = grouped.sem()
     n = grouped.count()
-    h = sem * stats.t.ppf((1 + confidence) / 2, n - 1)
+    if use_t:
+        h = sem * stats.t.ppf((1 + confidence) / 2, n - 1)
+    else:
+        h = sem * stats.norm.ppf((1 + confidence) / 2)
     return mean.index, mean.values, (mean - h).values, (mean + h).values
 
 

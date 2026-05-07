@@ -102,6 +102,7 @@ def plot_mean_mre(
     two_stage_df: pd.DataFrame,
     title: str,
     confidence: float = 0.95,
+    use_t: bool = False,
     ax=None,
 ) -> tuple:
     """Plot mean log MRE with CI bands for both learn modes."""
@@ -116,7 +117,9 @@ def plot_mean_mre(
     ]:
         if df.empty:
             continue
-        steps, mean, lo, hi = compute_mean_and_ci(df, confidence=confidence)
+        steps, mean, lo, hi = compute_mean_and_ci(
+            df, confidence=confidence, use_t=use_t
+        )
         ax.plot(steps, mean, label=label, color=color)
         ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
 
@@ -138,6 +141,7 @@ def plot_mean_mre_multi_ka(
     two_stage_series: list[tuple[str, pd.DataFrame]],
     title: str,
     confidence: float = 0.95,
+    use_t: bool = False,
     ax=None,
 ) -> tuple:
     """Plot Q-learning vs multiple Smart Q-learning variants with different K^a values.
@@ -162,14 +166,18 @@ def plot_mean_mre_multi_ka(
         fig = ax.get_figure()
 
     if not complete_df.empty:
-        steps, mean, lo, hi = compute_mean_and_ci(complete_df, confidence=confidence)
+        steps, mean, lo, hi = compute_mean_and_ci(
+            complete_df, confidence=confidence, use_t=use_t
+        )
         ax.plot(steps, mean, label="Q-learning", color="tab:blue")
         ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
 
     for (label, df), color in zip(two_stage_series, _MULTI_KA_COLORS):
         if df.empty:
             continue
-        steps, mean, lo, hi = compute_mean_and_ci(df, confidence=confidence)
+        steps, mean, lo, hi = compute_mean_and_ci(
+            df, confidence=confidence, use_t=use_t
+        )
         ax.plot(steps, mean, label=f"Smart Q-learning ({label})", color=color)
         ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
 
@@ -250,6 +258,7 @@ def compute_per_state_series(
     m_s: int,
     m_i: int,
     confidence: float = 0.95,
+    use_t: bool = False,
 ) -> tuple:
     """Compute mean and CI of log10 MRE across runs for state ``(m_s, m_i)``."""
     run_errors = {
@@ -275,7 +284,10 @@ def compute_per_state_series(
         vals = values_by_step[s]
         n = len(vals)
         if n > 1:
-            h = stats.sem(vals) * stats.t.ppf((1 + confidence) / 2, n - 1)
+            if use_t:
+                h = stats.sem(vals) * stats.t.ppf((1 + confidence) / 2, n - 1)
+            else:
+                h = stats.sem(vals) * stats.norm.ppf((1 + confidence) / 2)
             lo[i] = means[i] - h
             hi[i] = means[i] + h
     return steps, means, lo, hi
@@ -287,6 +299,7 @@ def plot_per_state_error(
     m_i: int,
     size_label: str = "",
     confidence: float = 0.95,
+    use_t: bool = False,
     learn_modes: list | None = None,
     ax=None,
 ) -> tuple:
@@ -317,7 +330,7 @@ def plot_per_state_error(
 
     for learn_mode, label, color in learn_modes:
         steps, means, lo, hi = compute_per_state_series(
-            per_state_errors, learn_mode, m_s, m_i, confidence=confidence
+            per_state_errors, learn_mode, m_s, m_i, confidence=confidence, use_t=use_t
         )
         if steps is None:
             continue

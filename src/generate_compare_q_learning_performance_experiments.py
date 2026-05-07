@@ -20,14 +20,15 @@ BASE_PARAMS = {
     "max_steps_episode": 2000,
     "n_episodes": 1_000_000,
     "n_steps": 1_000_000,
-    "first_stage_steps": 35_000,
+    "first_stage_steps": 5000,
     "recovery_rate": 0.6,
-    "resusceptible_rate": 0.3,
-    "size": 5,
+    "resusceptible_rate": 0,  # 0.0, 0.3
+    "size": 5,  # 5, 10
     "state_action_values_initialization": "random",
     "vaccination_rate": 0.2,
     "log_every_n_steps": 1_000,
     "save_every_n_steps": 100_000,
+    "alpha_restart_on_stage_change": True,
 }
 # BASE_PARAMS = {
 #    "alpha_decay": 0.00005,
@@ -73,7 +74,8 @@ def main(n: int, tag_runs_group: str = None):
         workspace_name=os.environ["WORKSPACE_NAME"],
     )
 
-    for learn_mode in ["complete", "two_stages"]:
+    #    for learn_mode in ["complete", "two_stages"]:
+    for learn_mode in ["two_stages"]:
         for i in range(n):
             cmd = command(
                 experiment_name="SIRS-Q-Learning",

@@ -80,7 +80,13 @@ def main(args):
             np.save(fh, Q_true)
         mlflow.log_artifact("Q_true.npy", artifact_path="Q_true")
 
-        Q = sirs_q_learning(env, params, Q_true)
+        Q, state_update_counts = sirs_q_learning(env, params, Q_true)
+        with open("state_update_counts_final.npy", "wb") as fh:
+            np.save(fh, state_update_counts)
+        mlflow.log_artifact("state_update_counts_final.npy")
+        with open("Q_final.npy", "wb") as fh:
+            np.save(fh, Q)
+        mlflow.log_artifact("Q_final.npy", artifact_path="Q_final")
 
 
 if __name__ == "__main__":
@@ -124,7 +130,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_every_n_steps", type=int, default=100_000)
     parser.add_argument(
         "--alpha_restart_on_stage_change",
-        action="store_true",
+        type=lambda x: str(x).lower() == "true",
         default=True,
     )
     parser.add_argument(

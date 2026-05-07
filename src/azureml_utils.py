@@ -12,6 +12,8 @@ from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.storage.blob import BlobServiceClient
 from azure.core.credentials import AzureNamedKeyCredential
 from azure.core.pipeline.transport import RequestsTransport
+import requests
+import requests.adapters
 from tqdm import tqdm
 
 
@@ -47,10 +49,19 @@ def _make_container_client(
 ):
     """Build a :class:`ContainerClient` with a connection pool sized for *max_workers*."""
     account_url = f"https://{storage_account_name}.blob.core.windows.net"
+    # Build a requests Session with a pool large enough for the thread count.
+    # The RequestsTransport constructor's connection_pool_maxsize kwarg does not
+    # reliably propagate to urllib3, so we wire it up via HTTPAdapter explicitly.
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=max_workers,
+        pool_maxsize=max_workers,
+    )
+    session.mount("https://", adapter)
     blob_service = BlobServiceClient(
         account_url=account_url,
         credential=AzureNamedKeyCredential(storage_account_name, storage_account_key),
-        transport=RequestsTransport(connection_pool_maxsize=max_workers),
+        transport=RequestsTransport(session=session),
     )
     return blob_service.get_container_client(container_name)
 
@@ -61,8 +72,14 @@ def _download_blobs(
     output_dir: Path,
     overwrite: bool,
     executor: ThreadPoolExecutor,
-) -> Path:
-    """Download all blobs under *blob_prefix* into *output_dir* using *executor*."""
+) -> tuple[Path, int, int]:
+    """Download all blobs under *blob_prefix* into *output_dir* using *executor*.
+
+    Returns
+    -------
+    tuple[Path, int, int]
+        ``(resolved_output_dir, n_downloaded, n_skipped)``.
+    """
     blobs = list(container_client.list_blobs(name_starts_with=blob_prefix))
 
     if not blobs:
@@ -70,20 +87,27 @@ def _download_blobs(
             f"No blobs found at {blob_prefix}. Check that the run_name is correct."
         )
 
-    def _download(blob):
+    def _download(blob) -> str:
+        """Return 'downloaded' or 'skipped'."""
         relative_path = blob.name[len(blob_prefix) :]
         local_path = output_dir / relative_path
         if local_path.exists() and not overwrite:
-            return
+            return "skipped"
         local_path.parent.mkdir(parents=True, exist_ok=True)
         with open(local_path, "wb") as f:
             container_client.get_blob_client(blob.name).download_blob().readinto(f)
+        return "downloaded"
 
     futures = {executor.submit(_download, blob): blob.name for blob in blobs}
+    n_downloaded = n_skipped = 0
     for future in as_completed(futures):
-        future.result()
+        status = future.result()
+        if status == "skipped":
+            n_skipped += 1
+        else:
+            n_downloaded += 1
 
-    return output_dir.resolve()
+    return output_dir.resolve(), n_downloaded, n_skipped
 
 
 def download_run_artifacts(
@@ -134,9 +158,11 @@ def download_run_artifacts(
     )
     blob_prefix = BLOB_PREFIX_TEMPLATE.format(run_name=run_name)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        return _download_blobs(
+        path, n_downloaded, n_skipped = _download_blobs(
             container_client, blob_prefix, Path(output_dir), overwrite, executor
         )
+    print(f"{run_name}: {n_downloaded} downloaded, {n_skipped} skipped")
+    return path
 
 
 def download_runs_artifacts(
@@ -185,26 +211,29 @@ def download_runs_artifacts(
 
     results: dict[str, Path] = {}
     errors: dict[str, Exception] = {}
+    total_downloaded = total_skipped = 0
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for run_name in tqdm(run_names, desc="Runs", unit="run"):
             run_output_dir = Path(output_dir) / run_name
             try:
                 blob_prefix = BLOB_PREFIX_TEMPLATE.format(run_name=run_name)
-                path = _download_blobs(
+                path, n_downloaded, n_skipped = _download_blobs(
                     container_client, blob_prefix, run_output_dir, overwrite, executor
                 )
                 results[run_name] = path
+                total_downloaded += n_downloaded
+                total_skipped += n_skipped
+                tqdm.write(
+                    f"  {run_name}: {n_downloaded} downloaded, {n_skipped} skipped"
+                )
             except Exception as exc:
                 errors[run_name] = exc
-
-    if errors:
-        import logging
-
-        for run_name, exc in errors.items():
-            logging.error("Failed to download run %s: %s", run_name, exc)
+                tqdm.write(f"  {run_name}: FAILED — {exc}")
 
     print(
-        f"Downloaded {len(results)}/{len(run_names)} runs to {Path(output_dir).resolve()}"
+        f"\nDone — {len(results)}/{len(run_names)} runs succeeded "
+        f"({total_downloaded} files downloaded, {total_skipped} skipped, "
+        f"{len(errors)} runs failed) → {Path(output_dir).resolve()}"
     )
     return results

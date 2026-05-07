@@ -31,8 +31,8 @@ class QLearningParams:
     learn_mode: str
     first_stage_steps: int
     alpha_decay: float = 1e-4
-    alpha_restart_on_stage_change: bool = False
     # Two-stage customisation (ignored for other learn modes)
+    alpha_restart_on_stage_change: bool = False
     stage1_initial_states: list[list[int]] | None = None
     stage1_end_states: list[list[int]] | None = None
 
@@ -240,6 +240,9 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
     Q = initialize_state_action_values(
         env, type=params.state_action_values_initialization
     )
+    # Tracks how many times each state's Q-value was updated.
+    # int32 supports up to ~2 billion updates per state at negligible memory cost.
+    state_update_counts = np.zeros((Q.shape[0], Q.shape[1]), dtype=np.int32)
 
     if learn_mode == "fixed_no_infection":
         for m_s in range(Q.shape[0]):
@@ -334,6 +337,7 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
                 + params.discount_factor * Q[next_state[0], next_state[1], :].max()
                 - Q[state[0], state[1], action]
             )
+            state_update_counts[state[0], state[1]] += 1
 
             state = next_state
             steps += 1
@@ -364,6 +368,12 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
                     f"Q_{episode}_{steps}_{total_steps}.npy",
                     artifact_path=outputs_ckpt_dir,
                 )
+                counts_fname = (
+                    f"state_update_counts_{episode}_{steps}_{total_steps}.npy"
+                )
+                with open(counts_fname, "wb") as fh:
+                    np.save(fh, state_update_counts)
+                mlflow.log_artifact(counts_fname, artifact_path=outputs_ckpt_dir)
 
             if total_steps >= n_steps:
                 break
@@ -375,4 +385,4 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
         if total_steps >= n_steps:
             break
 
-    return Q
+    return Q, state_update_counts

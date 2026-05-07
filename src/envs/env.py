@@ -57,9 +57,9 @@ class SIRSEnv(gym.Env):
                 if m_s + m_i <= self.size
             ]
             initial_state = tuple(options["initial_state"])
-            assert (
-                initial_state in allowed_states
-            ), f"Invalid initial state {initial_state}"
+            assert initial_state in allowed_states, (
+                f"Invalid initial state {initial_state}"
+            )
             self._state = initial_state
         else:
             default_states = [

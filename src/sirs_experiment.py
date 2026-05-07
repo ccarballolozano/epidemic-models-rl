@@ -24,7 +24,7 @@ MLFLOW_EXPERIMENT_NAME = "Smart Q-learning for SIRS"
 #    "cost_lockdown": 1.5,
 # }
 env_params = {
-    "size": 10,
+    "size": 5,
     "encounter_rate": 1.1,
     "recovery_rate": 0.6,
     "resusceptible_rate": 0.2,
@@ -44,11 +44,12 @@ params = QLearningParams(
     epsilon=0.1,
     alpha_max=0.5,
     alpha_min=1e-3,
+    alpha_decay=1e-4,
     discount_factor=0.99,
     state_action_values_initialization="random",
     max_steps_episode=2_000,
-    first_stage_steps=100_000,
-    log_every_n_steps=1000,
+    first_stage_steps=35_000,
+    log_every_n_steps=1_000,
     save_every_n_steps=10_000,
     learn_mode="two_stages",  # "complete" or "two_stages"
 )

@@ -32,18 +32,14 @@ def compute_best_response_policy(
         if m_s + m_i <= N
     ]
     # When Player i is susceptible
-    p_I = (
-        lambda m_s, m_i, action: unif * encounter_rate * action * (m_i / N)
+    p_I = lambda m_s, m_i, action: (
+        unif * encounter_rate * action * (m_i / N)
     )  # Player i infected
     p_R = lambda m_s, m_i, action: unif * recovery_rate  # Player i recovered
     p_S = lambda m_s, m_i, action: unif * resusceptible_rate  # Player i to susceptible
     p_V = lambda m_s, m_i, action: unif * vaccination_rate  # Player i vaccinated
-    q_I = (
-        lambda m_s, m_i, action: unif
-        * m_s
-        * encounter_rate
-        * policy[m_s, m_i]
-        * (m_i / N)
+    q_I = lambda m_s, m_i, action: (
+        unif * m_s * encounter_rate * policy[m_s, m_i] * (m_i / N)
     )  # Another player infected
 
     def q_I_(m_s, m_i, action):
@@ -56,8 +52,8 @@ def compute_best_response_policy(
     q_R = lambda m_s, m_i, action: unif * m_i * recovery_rate
     q_S = lambda m_s, m_i, action: unif * resusceptible_rate * (N - m_s - m_i)
     q_V = lambda m_s, m_i, action: unif * vaccination_rate * m_s
-    p_S_hat = (
-        lambda m_s, m_i, action: 1
+    p_S_hat = lambda m_s, m_i, action: (
+        1
         - p_I(m_s, m_i, action)
         - p_V(m_s, m_i, action)
         - q_V(m_s, m_i, action)
@@ -65,16 +61,16 @@ def compute_best_response_policy(
         - q_R(m_s, m_i, action)
         - q_S(m_s, m_i, action)
     )  # No changes in state
-    p_I_hat = (
-        lambda m_s, m_i, action: 1
+    p_I_hat = lambda m_s, m_i, action: (
+        1
         - p_R(m_s, m_i, action)
         - q_I_(m_s, m_i, action)
         - q_R(m_s, m_i, action)
         - q_S(m_s, m_i, action)
         - q_V(m_s, m_i, action)
     )
-    p_R_hat = (
-        lambda m_s, m_i, action: 1
+    p_R_hat = lambda m_s, m_i, action: (
+        1
         - p_S(m_s, m_i, action)
         - q_S(m_s, m_i, action)
         - q_I(m_s, m_i, action)
@@ -84,11 +80,11 @@ def compute_best_response_policy(
 
     V = defaultdict(lambda: 0, {state: 0 for state in states})
 
-    cost = lambda x, action: (cost_lockdown - action) * (x == "S") + cost_infection * (
-        x == "I"
+    cost = lambda x, action: (
+        (cost_lockdown - action) * (x == "S") + cost_infection * (x == "I")
     )
-    next_expected_value_s = (
-        lambda m_s, m_i, action, V: p_I(m_s, m_i, action) * V["I", m_s, m_i]
+    next_expected_value_s = lambda m_s, m_i, action, V: (
+        p_I(m_s, m_i, action) * V["I", m_s, m_i]
         + p_V(m_s, m_i, action) * V["R", m_s, m_i]
         + q_V(m_s, m_i, action) * V["S", m_s - 1, m_i]
         + q_I(m_s, m_i, action) * V["S", m_s - 1, m_i + 1]
@@ -96,16 +92,16 @@ def compute_best_response_policy(
         + q_S(m_s, m_i, action) * V["S", m_s + 1, m_i]
         + p_S_hat(m_s, m_i, action) * V["S", m_s, m_i]
     )
-    next_expected_value_i = (
-        lambda m_s, m_i, action, V: q_I_(m_s, m_i, action) * V["I", m_s - 1, m_i + 1]
+    next_expected_value_i = lambda m_s, m_i, action, V: (
+        q_I_(m_s, m_i, action) * V["I", m_s - 1, m_i + 1]
         + q_V(m_s, m_i, action) * V["I", m_s - 1, m_i]
         + q_R(m_s, m_i, action) * V["I", m_s, m_i - 1]
         + q_S(m_s, m_i, action) * V["I", m_s + 1, m_i]
         + p_R(m_s, m_i, action) * V["R", m_s, m_i]
         + p_I_hat(m_s, m_i, action) * V["I", m_s, m_i]
     )
-    next_expected_value_r = (
-        lambda m_s, m_i, action, V: p_S(m_s, m_i, action) * V["S", m_s, m_i]
+    next_expected_value_r = lambda m_s, m_i, action, V: (
+        p_S(m_s, m_i, action) * V["S", m_s, m_i]
         + q_V(m_s, m_i, action) * V["R", m_s - 1, m_i]
         + q_S(m_s, m_i, action) * V["R", m_s + 1, m_i]
         + q_I(m_s, m_i, action) * V["R", m_s - 1, m_i + 1]

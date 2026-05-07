@@ -23,6 +23,12 @@ def main(args):
         "cost_lockdown": args.cost_lockdown,
     }
 
+    stage1_initial_states = None
+    stage1_end_states = None
+    if env_params["resusceptible_rate"] == 0.0:
+        stage1_initial_states = [(0, args.size), (args.size, 0)]
+        stage1_end_states = [(0, 0)]
+
     params = QLearningParams(
         n_episodes=args.n_episodes,
         n_steps=args.n_steps,
@@ -37,6 +43,9 @@ def main(args):
         state_action_values_initialization=args.state_action_values_initialization,
         log_every_n_steps=args.log_every_n_steps,
         save_every_n_steps=args.save_every_n_steps,
+        alpha_restart_on_stage_change=args.alpha_restart_on_stage_change,
+        stage1_end_states=stage1_end_states,
+        stage1_initial_states=stage1_initial_states,
     )
 
     env = SIRSEnv(**env_params)
@@ -59,6 +68,8 @@ def main(args):
         mlflow.log_params(params.__dict__)
         mlflow.log_params(env_params)
         mlflow.set_tag("Learn mode", params.learn_mode)
+        mlflow.set_tag("size", env_params["size"])
+        mlflow.set_tag("run_group", args.tag_run_group)
 
         f, ax = plot_values(Q_true)
         mlflow.log_figure(f, "value_function_true.png")
@@ -111,5 +122,16 @@ if __name__ == "__main__":
     )
     parser.add_argument("--log_every_n_steps", type=int, default=1_000)
     parser.add_argument("--save_every_n_steps", type=int, default=100_000)
+    parser.add_argument(
+        "--alpha_restart_on_stage_change",
+        action="store_true",
+        default=True,
+    )
+    parser.add_argument(
+        "--tag-run-group",
+        type=str,
+        help="Value of the tag 'run_group' to identify the runs of this experiment",
+        required=False,
+    )
     args = parser.parse_args()
     main(args)

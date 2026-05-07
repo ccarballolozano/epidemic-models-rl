@@ -18,16 +18,16 @@ BASE_PARAMS = {
     "encounter_rate": 1.1,
     "epsilon": 0.1,
     "max_steps_episode": 2000,
-    "n_episodes": 1000000,
-    "n_steps": 1000000,
-    "first_stage_steps": 35000,
+    "n_episodes": 1_000_000,
+    "n_steps": 1_000_000,
+    "first_stage_steps": 35_000,
     "recovery_rate": 0.6,
     "resusceptible_rate": 0.3,
     "size": 5,
     "state_action_values_initialization": "random",
     "vaccination_rate": 0.2,
-    "log_every_n_steps": 1000,
-    "save_every_n_steps": 100000,
+    "log_every_n_steps": 1_000,
+    "save_every_n_steps": 100_000,
 }
 # BASE_PARAMS = {
 #    "alpha_decay": 0.00005,
@@ -38,7 +38,7 @@ BASE_PARAMS = {
 #    "discount_factor": 0.99,
 #    "encounter_rate": 1.1,
 #    "epsilon": 0.1,
-#    "max_steps_episode": 6000,
+#    "max_steps_episode": 6_000,
 #    "n_episodes": 5000000,
 #    "n_steps": 5000000,
 #    "first_stage_steps": 80000,
@@ -52,12 +52,14 @@ BASE_PARAMS = {
 # }
 
 
-def build_command_str(learn_mode: str) -> str:
+def build_command_str(learn_mode: str, tag_run_group: str = None) -> str:
     args = " ".join(f"--{k} {v}" for k, v in BASE_PARAMS.items())
+    if tag_run_group:
+        args += f" --tag-run-group {tag_run_group}"
     return f"python rl_experiment.py {args} --learn_mode {learn_mode}"
 
 
-def main(n: int):
+def main(n: int, tag_runs_group: str = None):
     try:
         credential = DefaultAzureCredential()
         credential.get_token("https://management.azure.com/.default")
@@ -76,7 +78,7 @@ def main(n: int):
             cmd = command(
                 experiment_name="SIRS-Q-Learning",
                 code="./src",
-                command=build_command_str(learn_mode),
+                command=build_command_str(learn_mode, tag_run_group=tag_runs_group),
                 compute=os.environ["COMPUTE_NAME"],
                 environment=f"{os.environ['ENVIRONMENT_NAME']}:{os.environ['ENVIRONMENT_VERSION']}",
                 tags={"learn_mode": learn_mode},
@@ -90,5 +92,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n", type=int, default=5, help="Number of runs per learn mode"
     )
+    parser.add_argument(
+        "--tag-runs-group",
+        type=str,
+        help="Identifier to add to the runs tags",
+        required=False,
+    )
     args = parser.parse_args()
-    main(args.n)
+    main(args.n, args.tag_runs_group)

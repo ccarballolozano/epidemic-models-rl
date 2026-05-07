@@ -29,8 +29,8 @@ def compute_social_optimum_policy(
     w_I = lambda m_s, m_i, action: unif * encounter_rate * action * m_s * m_i / size
     w_R = lambda m_s, m_i, action: unif * recovery_rate * m_i
     w_S = lambda m_s, m_i, action: unif * resusceptible_rate * (size - m_s - m_i)
-    w_hat = (
-        lambda m_s, m_i, action: 1
+    w_hat = lambda m_s, m_i, action: (
+        1
         - w_V(m_s, m_i, action)
         - w_I(m_s, m_i, action)
         - w_R(m_s, m_i, action)
@@ -45,11 +45,11 @@ def compute_social_optimum_policy(
     ]
     V = defaultdict(lambda: 0, {state: 0 for state in states})
 
-    cost = lambda m_s, m_i, action: (cost_lockdown - action) * (
-        m_s / size
-    ) + cost_infection * (m_i / size)
-    next_expected_value = (
-        lambda m_s, m_i, action, V: w_I(m_s, m_i, action) * V[m_s - 1, m_i + 1]
+    cost = lambda m_s, m_i, action: (
+        (cost_lockdown - action) * (m_s / size) + cost_infection * (m_i / size)
+    )
+    next_expected_value = lambda m_s, m_i, action, V: (
+        w_I(m_s, m_i, action) * V[m_s - 1, m_i + 1]
         + w_V(m_s, m_i, action) * V[m_s - 1, m_i]
         + w_R(m_s, m_i, action) * V[m_s, m_i - 1]
         + w_S(m_s, m_i, action) * V[m_s + 1, m_i]

@@ -246,6 +246,12 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
             for a in range(Q.shape[2]):
                 Q[m_s, 0, a] = Q_true[m_s, 0, a]
 
+    # When reinfection rate is zero, (0,0) is absorbing and stage 1 of two_stages
+    # never visits it, so its Q-value is never updated. Force it to 0 regardless
+    # of the initialization type.
+    if learn_mode == "two_stages" and env.resusceptible_rate == 0:
+        Q[0, 0, :] = 0
+
     # Pre-compute state partitions used by several learn modes
     states = [
         (m_s, m_i)

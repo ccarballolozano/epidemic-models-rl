@@ -46,6 +46,7 @@ def main(args):
         alpha_restart_on_stage_change=args.alpha_restart_on_stage_change,
         stage1_end_states=stage1_end_states,
         stage1_initial_states=stage1_initial_states,
+        stage2_absorbing_extra_steps=args.stage2_absorbing_extra_steps,
     )
 
     env = SIRSEnv(**env_params)
@@ -132,6 +133,12 @@ if __name__ == "__main__":
         "--alpha_restart_on_stage_change",
         type=lambda x: str(x).lower() == "true",
         default=True,
+    )
+    parser.add_argument(
+        "--stage2_absorbing_extra_steps",
+        type=int,
+        default=0,
+        help="Extra steps to continue inside an absorbing state before ending a stage-2 episode (0 = cut immediately).",
     )
     parser.add_argument(
         "--tag-run-group",

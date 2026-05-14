@@ -20,15 +20,16 @@ BASE_PARAMS = {
     "max_steps_episode": 2000,
     "n_episodes": 1_000_000,
     "n_steps": 1_000_000,
-    "first_stage_steps": 5000,
+    "first_stage_steps": 300_000,  # 5_000, 10_000, 35_000, 50_000, 100_000, 105_000, 150_000, 300_000
     "recovery_rate": 0.6,
-    "resusceptible_rate": 0,  # 0.0, 0.3
-    "size": 5,  # 5, 10
+    "resusceptible_rate": 0.3,  # 0.0, 0.3
+    "size": 10,  # 5, 10, 50
     "state_action_values_initialization": "random",
     "vaccination_rate": 0.2,
     "log_every_n_steps": 1_000,
     "save_every_n_steps": 100_000,
     "alpha_restart_on_stage_change": True,
+    "stage2_absorbing_extra_steps": 1,
 }
 # BASE_PARAMS = {
 #    "alpha_decay": 0.00005,

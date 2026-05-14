@@ -293,6 +293,64 @@ def compute_per_state_series(
     return steps, means, lo, hi
 
 
+def plot_per_state_error_multi_ka(
+    complete_per_state_errors: dict,
+    two_stage_series: list[tuple[str, dict]],
+    m_s: int,
+    m_i: int,
+    size_label: str = "",
+    confidence: float = 0.95,
+    use_t: bool = False,
+    ax=None,
+) -> tuple:
+    """Plot per-state log10 MRE for Q-learning vs multiple Smart Q-learning K^a variants.
+
+    Parameters
+    ----------
+    complete_per_state_errors:
+        Per-state errors dict (keyed by run_id) for the ``complete`` runs.
+    two_stage_series:
+        List of ``(label, per_state_errors_dict)`` tuples, one per K^a value.
+    m_s, m_i:
+        State to plot.
+    size_label:
+        Optional string appended to the plot title.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    else:
+        fig = ax.get_figure()
+
+    steps, means, lo, hi = compute_per_state_series(
+        complete_per_state_errors, "complete", m_s, m_i,
+        confidence=confidence, use_t=use_t,
+    )
+    if steps is not None:
+        ax.plot(steps, means, label="Q-learning", color="tab:blue")
+        ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
+
+    for (label, per_state_errors), color in zip(two_stage_series, _MULTI_KA_COLORS):
+        steps, means, lo, hi = compute_per_state_series(
+            per_state_errors, "two_stages", m_s, m_i,
+            confidence=confidence, use_t=use_t,
+        )
+        if steps is None:
+            continue
+        ax.plot(steps, means, label=f"Smart Q-learning ({label})", color=color)
+        ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
+
+    title = f"Per-State $\\log_{{10}}$ MRE — State $({m_s},\\,{m_i})$"
+    if size_label:
+        title += f",  {size_label}"
+    ax.set_xlabel("Step")
+    ax.set_ylabel(f"$\\log_{{10}}$ MRE at $({m_s},{m_i})$")
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    return fig, ax
+
+
 def plot_per_state_error(
     per_state_errors: dict,
     m_s: int,

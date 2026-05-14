@@ -35,6 +35,9 @@ class QLearningParams:
     alpha_restart_on_stage_change: bool = False
     stage1_initial_states: list[list[int]] | None = None
     stage1_end_states: list[list[int]] | None = None
+    # How many extra steps to continue inside an absorbing state before
+    # terminating stage-2 episodes.  0 = cut immediately (original behaviour).
+    stage2_absorbing_extra_steps: int = 0
 
 
 def inverse_sqrt_decay(step, n_steps, alpha_max, alpha_min):
@@ -210,6 +213,8 @@ def _is_episode_done(
     initial_state,
     absorbing_group_states: list,
     stage1_end_states_set: set | None = None,
+    absorbing_entry_step: int | None = None,
+    stage2_absorbing_extra_steps: int = 0,
 ) -> bool:
     """Return True when the episode should terminate under the given learn mode."""
     if learn_mode == "complete":
@@ -225,7 +230,14 @@ def _is_episode_done(
                     tuple(state) in stage1_end_states_set or steps >= max_steps_episode
                 )
             return steps >= max_steps_episode
-        return tuple(state) in absorbing_group_states
+        # Stage 2: end on absorbing states, with optional extra dwell steps.
+        in_absorbing = tuple(state) in absorbing_group_states
+        if in_absorbing:
+            if stage2_absorbing_extra_steps == 0:
+                return True
+            if absorbing_entry_step is not None:
+                return (steps - absorbing_entry_step) >= stage2_absorbing_extra_steps
+        return False
 
     # independent_no_infection
     if initial_state[1] > 0:
@@ -324,6 +336,7 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
         # ---- inner step loop -----------------------------------------------
         steps = 0
         done = False
+        absorbing_entry_step: int | None = None
         while not done:
             if np.random.rand() < params.epsilon:
                 action = env.action_space.sample()
@@ -343,6 +356,17 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
             steps += 1
             total_steps += 1
 
+            # Track when we first land in an absorbing state during stage 2
+            # so that _is_episode_done can count extra dwell steps.
+            if (
+                learn_mode == "two_stages"
+                and total_steps >= params.first_stage_steps
+                and params.stage2_absorbing_extra_steps > 0
+                and absorbing_entry_step is None
+                and tuple(state) in absorbing_group_states
+            ):
+                absorbing_entry_step = steps
+
             done = _is_episode_done(
                 learn_mode,
                 total_steps,
@@ -353,6 +377,8 @@ def sirs_q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
                 initial_state,
                 absorbing_group_states,
                 stage1_end_states_set=stage1_end_states_set,
+                absorbing_entry_step=absorbing_entry_step,
+                stage2_absorbing_extra_steps=params.stage2_absorbing_extra_steps,
             )
 
             if params.log_every_n_steps and (

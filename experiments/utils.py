@@ -296,12 +296,10 @@ def compute_per_state_series(
 def plot_per_state_error_multi_ka(
     complete_per_state_errors: dict,
     two_stage_series: list[tuple[str, dict]],
-    m_s: int,
-    m_i: int,
+    states: tuple[int, int] | list[tuple[int, int]],
     size_label: str = "",
     confidence: float = 0.95,
     use_t: bool = False,
-    ax=None,
 ) -> tuple:
     """Plot per-state log10 MRE for Q-learning vs multiple Smart Q-learning K^a variants.
 
@@ -311,44 +309,68 @@ def plot_per_state_error_multi_ka(
         Per-state errors dict (keyed by run_id) for the ``complete`` runs.
     two_stage_series:
         List of ``(label, per_state_errors_dict)`` tuples, one per K^a value.
-    m_s, m_i:
-        State to plot.
+    states:
+        A single ``(m_s, m_i)`` tuple or a list of tuples.  Each state gets
+        its own subplot when multiple states are provided.
     size_label:
-        Optional string appended to the plot title.
+        Optional string appended to the plot title(s).
     """
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(10, 6))
-    else:
-        fig = ax.get_figure()
+    # Normalise to a list of (m_s, m_i) tuples
+    if isinstance(states, tuple) and len(states) == 2 and isinstance(states[0], int):
+        states = [states]
 
-    steps, means, lo, hi = compute_per_state_series(
-        complete_per_state_errors, "complete", m_s, m_i,
-        confidence=confidence, use_t=use_t,
+    n = len(states)
+    ncols = min(n, 3)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(
+        nrows, ncols, figsize=(7 * ncols, 5 * nrows), squeeze=False
     )
-    if steps is not None:
-        ax.plot(steps, means, label="Q-learning", color="tab:blue")
-        ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
 
-    for (label, per_state_errors), color in zip(two_stage_series, _MULTI_KA_COLORS):
+    for idx, (m_s, m_i) in enumerate(states):
+        ax = axes[idx // ncols][idx % ncols]
+
         steps, means, lo, hi = compute_per_state_series(
-            per_state_errors, "two_stages", m_s, m_i,
-            confidence=confidence, use_t=use_t,
+            complete_per_state_errors,
+            "complete",
+            m_s,
+            m_i,
+            confidence=confidence,
+            use_t=use_t,
         )
-        if steps is None:
-            continue
-        ax.plot(steps, means, label=f"Smart Q-learning ({label})", color=color)
-        ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
+        if steps is not None:
+            ax.plot(steps, means, label="Q-learning", color="tab:blue")
+            ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
 
-    title = f"Per-State $\\log_{{10}}$ MRE — State $({m_s},\\,{m_i})$"
-    if size_label:
-        title += f",  {size_label}"
-    ax.set_xlabel("Step")
-    ax.set_ylabel(f"$\\log_{{10}}$ MRE at $({m_s},{m_i})$")
-    ax.set_title(title)
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+        for (label, per_state_errors), color in zip(two_stage_series, _MULTI_KA_COLORS):
+            steps, means, lo, hi = compute_per_state_series(
+                per_state_errors,
+                "two_stages",
+                m_s,
+                m_i,
+                confidence=confidence,
+                use_t=use_t,
+            )
+            if steps is None:
+                continue
+            ax.plot(steps, means, label=f"Smart Q-learning ({label})", color=color)
+            ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
+
+        title = f"State $({m_s},\\,{m_i})$"
+        if size_label:
+            title += f",  {size_label}"
+        ax.set_xlabel("Step")
+        ax.set_ylabel(f"$\\log_{{10}}$ MRE")
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    # Hide any unused subplots
+    for idx in range(n, nrows * ncols):
+        axes[idx // ncols][idx % ncols].set_visible(False)
+
+    fig.suptitle(f"Per-State $\\log_{{10}}$ MRE", y=1.01)
     plt.tight_layout()
-    return fig, ax
+    return fig, axes
 
 
 def plot_per_state_error(
@@ -383,8 +405,10 @@ def plot_per_state_error(
         learn_modes = LEARN_MODE_STYLES
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
+        created_fig = True
     else:
         fig = ax.get_figure()
+        created_fig = False
 
     for learn_mode, label, color in learn_modes:
         steps, means, lo, hi = compute_per_state_series(
@@ -403,5 +427,6 @@ def plot_per_state_error(
     ax.set_title(title)
     ax.legend()
     ax.grid(True, alpha=0.3)
-    plt.tight_layout()
+    if created_fig:
+        plt.tight_layout()
     return fig, ax

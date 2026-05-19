@@ -7,6 +7,8 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import os
+
 from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.storage.blob import BlobServiceClient
@@ -17,7 +19,7 @@ import requests.adapters
 from tqdm import tqdm
 
 
-TENANT_ID = "944a88f0-8401-4e30-ab9b-438f9bade44d"
+TENANT_ID = os.environ["TENANT_ID"]
 CONFIG_PATH = Path(__file__).parent.parent / "experiments" / "config.json"
 CONTAINER_NAME = "azureml"
 BLOB_PREFIX_TEMPLATE = "ExperimentRun/dcid.{run_name}/"

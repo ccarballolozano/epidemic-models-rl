@@ -1,4 +1,4 @@
-# Send experiments to Azure ML (running rl_experiment.py for fixed parameters multiple times, except "complete" and "two_stages")import argparse
+# Send experiments to Azure ML (running rl_experiment.py for fixed parameters multiple times, except "complete" and "two_stages")
 import argparse
 import os
 

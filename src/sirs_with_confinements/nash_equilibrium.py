@@ -1,6 +1,8 @@
 import argparse
+import os
 
 from loguru import logger
+import matplotlib.pyplot as plt
 import numpy as np
 
 from .best_response import compute_best_response_policy
@@ -43,7 +45,7 @@ def compute_nash_equilibrium(
             policy_not_i,
         )
         # parse policy_br to policy
-        policy = {k[1:]: v for k, v in policy_br.items() if k[0] == "S"}
+        policy = {state[1:]: v for state, v in policy_br.items() if state[0] == "S"}
         delta = np.max(
             np.abs(list({s: policy[s] - policy_not_i[s] for s in policy}.values()))
         )
@@ -80,9 +82,6 @@ def main(args):
         args.max_iterations,
     )
 
-    import matplotlib.pyplot as plt
-    import os
-
     n_confinement_states = 0
     n_total_states = 0
     for m_s, m_i in policy_nash:
@@ -113,7 +112,6 @@ def main(args):
         bbox_inches="tight",
     )
     plt.show(block=True)
-    print(0)
 
 
 if __name__ == "__main__":

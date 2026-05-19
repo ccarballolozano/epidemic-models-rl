@@ -72,9 +72,9 @@ def main(args):
         mlflow.set_tag("size", env_params["size"])
         mlflow.set_tag("run_group", args.tag_run_group)
 
-        f, ax = plot_values(Q_true)
+        f, _ = plot_values(Q_true)
         mlflow.log_figure(f, "value_function_true.png")
-        f, ax = plot_policy(Q_true)
+        f, _ = plot_policy(Q_true)
         mlflow.log_figure(f, "policy_true.png")
         # log Q_true as artifact
         with open("Q_true.npy", "wb") as fh:

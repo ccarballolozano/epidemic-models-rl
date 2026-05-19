@@ -11,8 +11,9 @@ def main():
     try:
         # Using DefaultAzureCredential for authentication
         # credential = DefaultAzureCredential()
+        import os
         credential = InteractiveBrowserCredential(
-            tenant_id="944a88f0-8401-4e30-ab9b-438f9bade44d",
+            tenant_id=os.environ["TENANT_ID"],
         )
 
         # Create ML Client from config.json

@@ -1,7 +1,6 @@
 import argparse
 from collections import defaultdict
 import os
-from datetime import datetime
 
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -102,8 +101,6 @@ def compute_social_optimum_policy(
 
 
 def main(args):
-    import os
-
     policy, V = compute_social_optimum_policy(
         args.size,
         args.encounter_rate,
@@ -151,4 +148,3 @@ if __name__ == "__main__":
     parser.add_argument("--max_iterations", type=int, default=1e6)
     args = parser.parse_args()
     main(args)
-    print(0)

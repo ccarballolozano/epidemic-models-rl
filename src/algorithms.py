@@ -1,5 +1,3 @@
-import random
-
 from loguru import logger
 import mlflow
 import numpy as np
@@ -45,10 +43,6 @@ def inverse_sqrt_decay(step, n_steps, alpha_max, alpha_min):
     return alpha_max / np.sqrt(1 + c * (step / n_steps))
 
 
-def exponential_decay(step, n_steps, alpha_max, alpha_min):
-    return alpha_max * (alpha_min / alpha_max) ** (step / n_steps)
-
-
 def compute_metrics(Q_true, Q, include_subsets=False):
     V = np.max(Q, axis=-1)
     V_true = Q_true.max(axis=-1)
@@ -86,85 +80,6 @@ def compute_metrics(Q_true, Q, include_subsets=False):
             "log_mean_relative_error_infected": np.log10(rel_error_infected[1]),
         }
     return metrics
-
-
-def q_learning(env: SIRSEnv, params: QLearningParams, Q_true: np.array):
-    # Initialize Q-values
-    Q = initialize_state_action_values(
-        env, type=params.state_action_values_initialization
-    )
-
-    total_reward = 0
-    total_steps = 0
-    done_alg = False
-
-    alpha = inverse_sqrt_decay(
-        total_steps, params.n_steps, params.alpha_max, params.alpha_min
-    )
-    metrics = compute_metrics(Q_true, Q)
-    metrics |= {"lr": alpha}
-    mlflow.log_metrics(metrics, step=total_steps)
-
-    for episode in range(params.n_episodes):
-        logger.info(
-            f"Episode {episode} - Total steps at the beginning of the episode {episode}: {total_steps}"
-        )
-        state, _ = env.reset()
-        done = False
-        episode_reward = 0
-        step = 0
-        while not done:
-            # Choose action
-            if np.random.rand() < params.epsilon:
-                action = env.action_space.sample()
-            else:
-                action = np.argmax(Q[state[0], state[1], :])
-
-            # Take action
-            next_state, reward, done, _, _ = env.step(action)
-
-            alpha = inverse_sqrt_decay(
-                total_steps, params.n_steps, params.alpha_max, params.alpha_min
-            )
-            # Update Q-value
-            Q[state[0], state[1], action] = (1 - alpha) * Q[
-                state[0], state[1], action
-            ] + alpha * (
-                reward
-                + params.discount_factor * np.max(Q[next_state[0], next_state[1], :])
-            )
-            state = next_state
-            episode_reward += reward
-            step += 1
-            total_steps += 1
-            if step == params.max_steps_episode:
-                done = True
-            # Log metrics and checkpoints
-            if (
-                params.log_every_n_steps
-                and (total_steps % params.log_every_n_steps == 0)
-            ) or done:
-                metrics = compute_metrics(Q_true, Q)
-                metrics |= {"lr": alpha}
-                mlflow.log_metrics(metrics, step=total_steps)
-            if params.save_every_n_steps and (
-                total_steps % params.save_every_n_steps == 0
-            ):
-                outputs_ckpt_dir = f"chkpt_{episode}_{step}_{total_steps}"
-                with open(f"Q_{episode}_{step}_{total_steps}.npy", "wb") as f:
-                    np.save(f, Q)
-                mlflow.log_artifact(
-                    f"Q_{episode}_{step}_{total_steps}.npy",
-                    artifact_path=outputs_ckpt_dir,
-                )
-            if total_steps >= params.n_steps:
-                done_alg = True
-                logger.info(f"Training finished after {total_steps} steps")
-                break
-        total_reward += episode_reward
-        if done_alg:
-            break
-    return Q
 
 
 _VALID_LEARN_MODES = frozenset(

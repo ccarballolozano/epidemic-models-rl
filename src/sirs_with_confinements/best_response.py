@@ -46,8 +46,7 @@ def compute_best_response_policy(
         # Another player gets infected
         if m_s >= 1:
             return unif * m_s * encounter_rate * policy[m_s, m_i] * ((m_i + 1) / N)
-        else:  # TODO: Remove else, as not required.
-            return 0
+        return 0
 
     q_R = lambda m_s, m_i, action: unif * m_i * recovery_rate
     q_S = lambda m_s, m_i, action: unif * resusceptible_rate * (N - m_s - m_i)
@@ -184,8 +183,10 @@ def compute_best_response_policy(
 
 
 def main(args):
+    N = args.N
+    policy = {(m_s, m_i): 0 for m_s in range(N) for m_i in range(N) if m_s + m_i <= N - 1}
     policy, V = compute_best_response_policy(
-        args.N,
+        N,
         args.encounter_rate,
         args.recovery_rate,
         args.resusceptible_rate,
@@ -194,6 +195,7 @@ def main(args):
         args.cost_lockdown,
         args.discount_factor,
         args.theta,
+        policy,
     )
     logger.info(f"Policy: {policy}")
 
@@ -226,4 +228,3 @@ if __name__ == "__main__":
     parser.add_argument("--theta", type=float, default=1e-6)
     args = parser.parse_args()
     main(args)
-    print(0)

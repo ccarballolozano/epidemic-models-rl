@@ -1,7 +1,6 @@
 import argparse
 from collections import defaultdict
 import os
-from datetime import datetime
 
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -97,8 +96,6 @@ def compute_social_optimum_policy(
 
 
 def main(args):
-    import os
-
     policy, Q = compute_social_optimum_policy(
         args.size,
         args.encounter_rate,
@@ -130,7 +127,6 @@ def main(args):
             f"sirs_social_plt_{args.size}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
         )
     )
-    f.show()
     f, ax = plt.subplots()
     # policy dictionary to numpy array, where keys are (row, column) and value is the array value for that row and column
     Q_0 = np.array(
@@ -156,7 +152,7 @@ def main(args):
         for j in range(args.size + 1):
             if not i + j <= args.size:
                 continue
-            text = ax.text(
+            ax.text(
                 i,
                 j,
                 f"{Q_diff[i, j]:.1e}",
@@ -180,7 +176,6 @@ def main(args):
             f"sirs_social_q_diff_{args.size}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
         )
     )
-    f.show()
 
     f, ax = plt.subplots()
     Q_best = np.maximum(Q_0, Q_1)
@@ -193,7 +188,7 @@ def main(args):
         for j in range(args.size + 1):
             if not i + j <= args.size:
                 continue
-            text = ax.text(
+            ax.text(
                 i,
                 j,
                 f"{Q_best[i, j]:.1e}",
@@ -217,7 +212,6 @@ def main(args):
             f"sirs_social_q_best_{args.size}_{args.encounter_rate}_{args.recovery_rate}_{args.resusceptible_rate}_{args.vaccination_rate}_{args.cost_infection}_{args.cost_lockdown}.png",
         )
     )
-    f.show()
 
     # Plot probabilities
     unif = 1 / (
@@ -309,9 +303,6 @@ def main(args):
         ax.invert_yaxis()
         ax.set_title(f"{titles[i]}")
 
-    f.show()
-    print(0)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -328,4 +319,3 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="outputs")
     args = parser.parse_args()
     main(args)
-    print(0)

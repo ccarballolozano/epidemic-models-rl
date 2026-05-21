@@ -255,24 +255,45 @@ Azure ML scripts.
 
 ## Running experiments
 
-### Compute the social optimum
+The typical workflow is two steps:
+
+```
+1. Submit jobs to Azure ML  →  src/generate_compare_q_learning_performance_experiments.py
+2. Visualise results        →  experiments/Compare_Two_Stage_Q_Learning_Performance.ipynb
+```
+
+### Step 1 — Submit experiments to Azure ML
+
+Edit `BASE_PARAMS` in `src/generate_compare_q_learning_performance_experiments.py` to
+set the desired hyperparameters, then run:
 
 ```bash
 cd src
-python rl/q_iteration.py \
-    --size 10 \
-    --encounter_rate 1.1 \
-    --recovery_rate 0.6 \
-    --resusceptible_rate 0.3 \
-    --vaccination_rate 0.2 \
-    --cost_infection 2 \
-    --cost_lockdown 1.001 \
-    --discount_factor 0.99 \
-    --theta 1e-12 \
-    --output_dir ../outputs
+python generate_compare_q_learning_performance_experiments.py
 ```
 
-### Run a single Q-learning experiment (local MLflow)
+This submits one batch of `complete` (Q-learning) runs and one batch of `two_stages`
+(Smart Q-learning) runs to Azure ML, with all metrics logged to the linked MLflow
+tracking server.
+
+### Step 2 — Visualise results
+
+Open the comparison notebook and run all cells.  It connects to Azure ML / MLflow,
+fetches the metric history for each run, and plots learning curves with confidence
+intervals:
+
+```bash
+jupyter notebook experiments/Compare_Two_Stage_Q_Learning_Performance.ipynb
+```
+
+Save the executed notebook as `Compare_Two_Stage_Q_Learning_Performance_with_outputs.ipynb`
+to keep your results locally without committing them (see [Notebook workflow](#notebook-workflow)).
+
+---
+
+### Running a single experiment locally (optional)
+
+Useful for quick iteration or debugging before submitting to Azure ML:
 
 ```bash
 cd src
@@ -302,23 +323,11 @@ python rl_experiment.py \
     --tag_run_group my_experiment
 ```
 
-### Batch experiments on Azure ML
+Inspect results locally with the MLflow UI:
 
 ```bash
-cd src
-python generate_compare_q_learning_performance_experiments.py
+mlflow ui   # → http://localhost:5000
 ```
-
-This script submits parallel `complete` vs `two_stages` runs to Azure ML using the
-parameters defined in `BASE_PARAMS` and sweeps over the modes.
-
-### Open the MLflow UI
-
-```bash
-mlflow ui
-```
-
-Then navigate to `http://localhost:5000`.
 
 ---
 

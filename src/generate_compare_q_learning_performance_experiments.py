@@ -22,8 +22,8 @@ BASE_PARAMS = {
     "n_steps": 1_000_000,
     "first_stage_steps": 300_000,  # 5_000, 10_000, 35_000, 50_000, 100_000, 105_000, 150_000, 300_000
     "recovery_rate": 0.6,
-    "resusceptible_rate": 0.3,  # 0.0, 0.3
-    "size": 10,  # 5, 10, 50
+    "resusceptible_rate": 0.0,  # 0.0, 0.3
+    "size": 50,  # 5, 10, 50
     "state_action_values_initialization": "random",
     "vaccination_rate": 0.2,
     "log_every_n_steps": 1_000,

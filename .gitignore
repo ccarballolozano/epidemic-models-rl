@@ -153,6 +153,16 @@ cython_debug/
 
 outputs/
 mlruns/
+data/
+artifacts/
 
 # Images
 *.png
+
+*.npy
+
+# Azure ML workspace config (contains subscription/resource info)
+config.json
+
+# Notebooks with local outputs (run copies)
+*_with_outputs.ipynb

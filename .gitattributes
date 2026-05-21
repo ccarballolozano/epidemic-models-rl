@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Strip notebook outputs on commit (requires nbstripout: `pip install nbstripout && nbstripout --install`)
+*.ipynb filter=nbstripout

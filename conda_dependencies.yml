@@ -1,0 +1,21 @@
+name: epidemic-models-rl
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - pip=23.3.1
+  - python=3.11
+  - pip:
+      - azure-ai-ml
+      - azure-identity
+      - azureml-mlflow
+      - gymnasium
+      - python-dotenv
+      - ipykernel
+      - loguru
+      - matplotlib
+      - mlflow
+      - mlflow-skinny
+      - numpy
+      - seaborn
+      - pydantic

@@ -25,7 +25,7 @@ THETA = 1e-6
 def main(args):
     output_dir = args.output_dir
     if output_dir is None:
-        output_dir = os.path.join(output_dir, "social_optimum", str(datetime.now()))
+        output_dir = os.path.join("outputs", "social_optimum", str(datetime.now()))
 
     # force param types for output names formatting purposes
     Ns = [int(el) for el in NS]
@@ -100,7 +100,7 @@ def main(args):
                                     ),
                                     policy,
                                 )
-                                f, ax = plt.subplots()
+                                _, ax = plt.subplots()
                                 for m_s, m_i in policy:
                                     if policy[m_s, m_i] == 0:
                                         ax.plot(

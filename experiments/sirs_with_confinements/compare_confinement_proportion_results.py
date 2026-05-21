@@ -96,10 +96,6 @@ def main(args):
                                     "nash_equilibrium_confinement_proportion": nash_equilibrium_confinement_proportion,
                                 }
     proportions_df.reset_index(drop=True, inplace=True)
-    proportions_df[proportions_df["nash_equilibrium_confinement_proportion"] > proportions_df["social_optimum_confinement_proportion"]]
-    proportions_df[proportions_df["nash_equilibrium_confinement_proportion"] < proportions_df["social_optimum_confinement_proportion"]]
-    proportions_df[proportions_df["nash_equilibrium_confinement_proportion"] == proportions_df["social_optimum_confinement_proportion"]]
-
     proportions_df.to_csv("outputs/confinement_proportions.csv", index=False)
 
 
@@ -118,7 +114,7 @@ def load_policy(
         policy = np.load(file_path, allow_pickle=True).item()
         return policy
     except Exception as e:
-        raise ("Error loading policy:", e)
+        raise Exception(f"Error loading policy: {e}")
 
 
 def compute_confinement_proportion(policy: dict):

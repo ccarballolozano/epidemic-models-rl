@@ -27,7 +27,7 @@ MAX_ITERATIONS = 5e2
 def main(args):
     output_dir = args.output_dir
     if output_dir is None:
-        output_dir = os.path.join(output_dir, "nash_equilibrium", str(datetime.now()))
+        output_dir = os.path.join("outputs", "nash_equilibrium", str(datetime.now()))
     os.makedirs(output_dir, exist_ok=True)
 
     # force param types for output names formatting purposes
@@ -97,7 +97,7 @@ def main(args):
                                     ),
                                     policy,
                                 )
-                                f, ax = plt.subplots()
+                                _, ax = plt.subplots()
                                 for m_s, m_i in policy:
                                     if policy[m_s, m_i] == 0:
                                         ax.plot(

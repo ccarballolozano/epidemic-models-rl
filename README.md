@@ -2,12 +2,15 @@
 
 A research codebase for learning optimal confinement policies in stochastic epidemic models.
 The project casts epidemic control as a Markov Decision Process (MDP) defined on a
-mean-field SIRS model and compares tabular Q-learning algorithms against the
-social-optimum policy computed by exact dynamic programming.
+mean-field SIRS model and compares two tabular Q-learning algorithms:
 
-The central question is whether a **two-stage curriculum** (*Smart Q-learning*) converges
-faster and to a better policy than standard Q-learning, by first learning the values of
-absorbing (disease-free) states before tackling the harder transient region.
+- **Q-learning** — standard tabular Q-learning exploring the full state space uniformly.
+- **Smart Q-learning** — the same algorithm with a two-stage curriculum that first learns
+  the values of disease-free (absorbing) states before exploring the harder transient region.
+
+Both algorithms are evaluated against the **social-optimum policy** computed exactly by
+Q-value iteration, which acts as the ground truth.  The central question is whether the
+curriculum accelerates convergence and improves policy quality.
 
 ---
 
@@ -39,9 +42,9 @@ impose a confinement measure (action = 1) or not (action = 0).  Confinement redu
 transmission at the cost of an economic penalty proportional to the susceptible
 population.
 
-The **social optimum** policy — which minimises the discounted cumulative cost over the
-whole population — is computed exactly by Q-value iteration and serves as the ground
-truth against which all learned policies are measured.
+The **social optimum** — computed once by Q-value iteration — serves as the reference
+policy.  All learned policies are compared to it via value-function error and policy
+accuracy metrics (see [Evaluation](#evaluation)).
 
 ---
 

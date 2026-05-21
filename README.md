@@ -2,9 +2,12 @@
 
 A research codebase for learning optimal confinement policies in stochastic epidemic models.
 The project casts epidemic control as a Markov Decision Process (MDP) defined on a
-mean-field SIRS model and studies how well tabular Q-learning — with and without a
-two-stage curriculum — can recover the social-optimum policy computed by exact dynamic
-programming.
+mean-field SIRS model and compares tabular Q-learning algorithms against the
+social-optimum policy computed by exact dynamic programming.
+
+The central question is whether a **two-stage curriculum** (*Smart Q-learning*) converges
+faster and to a better policy than standard Q-learning, by first learning the values of
+absorbing (disease-free) states before tackling the harder transient region.
 
 ---
 
@@ -19,7 +22,6 @@ programming.
 7. [Running experiments](#running-experiments)
 8. [Experiment tracking](#experiment-tracking)
 9. [Notebook workflow](#notebook-workflow)
-10. [Game-theoretic baselines](#game-theoretic-baselines)
 
 ---
 
@@ -32,21 +34,14 @@ susceptible pool (rate δ), making recurrent epidemic waves possible.
 
 This project studies the *mean-field* (aggregate) version of the model, where the state
 is the pair (M_S, M_I) counting susceptible and infected individuals in the population.
-A social planner — or a learned agent — observes this aggregate state and chooses at
-each step whether to impose a confinement measure (action = 1) or not (action = 0).
-Confinement scales down the encounter rate, reducing transmission at the cost of an
-economic penalty proportional to the susceptible population.
+A social planner observes this aggregate state and chooses at each step whether to
+impose a confinement measure (action = 1) or not (action = 0).  Confinement reduces
+transmission at the cost of an economic penalty proportional to the susceptible
+population.
 
-Two families of policies are studied:
-
-| Policy | Description |
-|---|---|
-| **Social optimum** | Minimises the discounted cumulative cost over the whole population — computed exactly via Q-value iteration. |
-| **Q-learning** | Learns the same objective from simulated trajectories; several curricula are compared. |
-
-The game-theoretic module (`src/sirs_with_confinements/`) also contains a **Nash
-equilibrium** baseline where each player selfishly minimises their own cost given the
-behaviour of others.
+The **social optimum** policy — which minimises the discounted cumulative cost over the
+whole population — is computed exactly by Q-value iteration and serves as the ground
+truth against which all learned policies are measured.
 
 ---
 
@@ -59,18 +54,15 @@ epidemic-models-rl/
 │   ├── envs/
 │   │   └── env.py                  # SIRSEnv — Gymnasium environment
 │   ├── rl/
-│   │   └── q_iteration.py          # Exact Q-value iteration (social optimum)
-│   ├── sirs_with_confinements/     # Game-theoretic module (Nash / social optimum)
-│   │   ├── best_response.py
-│   │   ├── nash_equilibrium.py
-│   │   └── social_optimum.py
+│   │   └── q_iteration.py          # Exact Q-value iteration (social optimum / ground truth)
 │   ├── algorithms.py               # Tabular Q-learning with curriculum modes
 │   ├── metrics.py                  # Value-function and policy error metrics
 │   ├── misc.py                     # Q-table initialisation utilities
 │   ├── plot.py                     # Shared plotting helpers
 │   ├── rl_experiment.py            # Single-run experiment entry point
 │   ├── azureml_utils.py            # Azure ML helpers
-│   └── generate_compare_q_learning_performance_experiments.py
+│   ├── generate_compare_q_learning_performance_experiments.py
+│   └── sirs_with_confinements/     # Legacy game-theoretic analysis (not part of RL comparison)
 │
 ├── experiments/
 │   ├── utils.py                    # MLflow fetch, CI, and plotting utilities
@@ -79,8 +71,7 @@ epidemic-models-rl/
 │   ├── Compare_Two_Stage_Q_Learning_Performance.ipynb
 │   ├── plot_two_stage_q_learning.py
 │   ├── plot_two_stage_q_learning_performance.py
-│   ├── plot_two_stage_q_learning_performance_agg.py
-│   └── sirs_with_confinements/     # Game-theory experiment scripts
+│   └── plot_two_stage_q_learning_performance_agg.py
 │
 ├── jobs/
 │   └── smart_q_learning_job.yml    # Azure ML job definition
@@ -360,21 +351,3 @@ nbstripout --install   # installs the git filter defined in .gitattributes
 
 From then on, outputs are stripped automatically at commit time — your local notebook
 (with results) is never touched.
-
----
-
-## Game-theoretic baselines
-
-`src/sirs_with_confinements/` implements the individual-level SIRS model and three
-solution concepts:
-
-| Module | Concept | Description |
-|---|---|---|
-| `social_optimum.py` | Social optimum | Policy minimising the total population cost |
-| `best_response.py` | Best response | Optimal policy for one player given all others' fixed policy |
-| `nash_equilibrium.py` | Nash equilibrium | Fixed point of the best-response map — each player is individually rational |
-
-These baselines are used in the `experiments/sirs_with_confinements/` scripts to
-generate proportion-of-confinement and value-function comparisons between cooperative
-and non-cooperative equilibria.
-

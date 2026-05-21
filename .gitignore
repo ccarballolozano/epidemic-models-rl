@@ -160,3 +160,6 @@ artifacts/
 *.png
 
 *.npy
+
+# Azure ML workspace config (contains subscription/resource info)
+config.json

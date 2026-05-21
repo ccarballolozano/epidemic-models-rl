@@ -208,6 +208,42 @@ def get_local_artifacts_path(
     return local_path
 
 
+def load_run_value_functions(
+    run_id: str,
+    artifacts_root: Path | str = ARTIFACTS_ROOT,
+) -> dict | None:
+    """Load Q_true and all Q checkpoints; return raw value functions.
+
+    Returns ``{"V_true": ndarray(S+1,S+1), "checkpoints": {step: ndarray(S+1,S+1)}}``
+    or ``None`` when no artifacts are found.  ``V = max(Q, axis=-1)``.
+    """
+    try:
+        artifacts_path = get_local_artifacts_path(run_id, artifacts_root)
+    except FileNotFoundError:
+        return None
+
+    q_true_files = list((artifacts_path / "Q_true").glob("*.npy"))
+    if not q_true_files:
+        return None
+
+    Q_true = np.load(q_true_files[0])  # (S+1, S+1, A)
+    V_true = np.max(Q_true, axis=-1)   # (S+1, S+1)
+
+    checkpoints = {}
+    for chkpt_dir in sorted(artifacts_path.glob("chkpt_*")):
+        npy_files = [f for f in chkpt_dir.glob("Q_*.npy")]
+        if not npy_files:
+            continue
+        match = re.search(r"_(\d+)\.npy$", npy_files[0].name)
+        if not match:
+            continue
+        step = int(match.group(1))
+        Q_ckpt = np.load(npy_files[0])  # (S+1, S+1, A)
+        checkpoints[step] = np.max(Q_ckpt, axis=-1)  # (S+1, S+1)
+
+    return {"V_true": V_true, "checkpoints": dict(sorted(checkpoints.items()))}
+
+
 def load_run_state_errors(
     run_id: str,
     artifacts_root: Path | str = ARTIFACTS_ROOT,
@@ -430,3 +466,299 @@ def plot_per_state_error(
     if created_fig:
         plt.tight_layout()
     return fig, ax
+
+
+# ---------------------------------------------------------------------------
+# Raw value-function helpers
+# ---------------------------------------------------------------------------
+
+
+def _valid_state_mask(n: int) -> np.ndarray:
+    """Boolean mask (S+1, S+1): True = valid state (m_s + m_i <= n)."""
+    mask = np.zeros((n, n), dtype=bool)
+    for s in range(n):
+        for i in range(n - s):
+            mask[s, i] = True
+    return mask
+
+
+def compute_mean_value_series(
+    per_run_vf: dict,
+    learn_mode: str,
+    confidence: float = 0.95,
+    use_t: bool = False,
+) -> tuple:
+    """Compute mean and CI of the mean V (across all valid states) over steps.
+
+    Parameters
+    ----------
+    per_run_vf:
+        Dict ``{run_id: {"learn_mode": str, "V_true": ndarray, "checkpoints": {step: ndarray}}}``.
+    learn_mode:
+        ``"complete"`` or ``"two_stages"``.
+
+    Returns
+    -------
+    (steps, means, lo, hi) — all None when no matching runs are found.
+    """
+    run_data = {
+        rid: v for rid, v in per_run_vf.items() if v["learn_mode"] == learn_mode
+    }
+    if not run_data:
+        return None, None, None, None
+
+    all_steps = sorted(
+        set(s for v in run_data.values() for s in v["checkpoints"].keys())
+    )
+    values_by_step: dict[int, list] = {}
+    for step in all_steps:
+        vals = []
+        for v in run_data.values():
+            if step not in v["checkpoints"]:
+                continue
+            V = v["checkpoints"][step]
+            mask = _valid_state_mask(V.shape[0])
+            vals.append(float(np.mean(V[mask])))
+        if vals:
+            values_by_step[step] = vals
+
+    steps = sorted(values_by_step.keys())
+    means = np.array([np.mean(values_by_step[s]) for s in steps])
+    lo, hi = means.copy(), means.copy()
+    for i, s in enumerate(steps):
+        vals = values_by_step[s]
+        n = len(vals)
+        if n > 1:
+            if use_t:
+                h = stats.sem(vals) * stats.t.ppf((1 + confidence) / 2, n - 1)
+            else:
+                h = stats.sem(vals) * stats.norm.ppf((1 + confidence) / 2)
+            lo[i] = means[i] - h
+            hi[i] = means[i] + h
+    return steps, means, lo, hi
+
+
+def plot_mean_value_multi_ka(
+    complete_vf: dict,
+    two_stage_vf_series: list[tuple[str, dict]],
+    title: str,
+    confidence: float = 0.95,
+    use_t: bool = False,
+    ax=None,
+) -> tuple:
+    """Plot mean V (over valid states) vs steps for Q-learning and Smart Q-learning variants.
+
+    A horizontal dashed black line marks the mean V_true (optimum).
+
+    Parameters
+    ----------
+    complete_vf:
+        Per-run value-function dict for ``complete`` (Q-learning) runs.
+    two_stage_vf_series:
+        List of ``(label, per_run_vf)`` tuples, one per K^a value.
+    title:
+        Plot title.
+    confidence, use_t:
+        CI parameters passed to :func:`compute_mean_value_series`.
+    ax:
+        Optional existing Axes; a new figure is created when None.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 6))
+    else:
+        fig = ax.get_figure()
+
+    # Draw V_true mean as horizontal reference
+    true_vals = [
+        float(np.mean(v["V_true"][_valid_state_mask(v["V_true"].shape[0])]))
+        for v in complete_vf.values()
+        if "V_true" in v
+    ]
+    if not true_vals:
+        for _, vf in two_stage_vf_series:
+            true_vals = [
+                float(np.mean(v["V_true"][_valid_state_mask(v["V_true"].shape[0])]))
+                for v in vf.values()
+                if "V_true" in v
+            ]
+            if true_vals:
+                break
+    if true_vals:
+        ax.axhline(
+            np.mean(true_vals),
+            color="black",
+            linestyle="--",
+            linewidth=1.5,
+            label="Optimum",
+        )
+
+    if complete_vf:
+        steps, mean, lo, hi = compute_mean_value_series(
+            complete_vf, "complete", confidence=confidence, use_t=use_t
+        )
+        if steps is not None:
+            ax.plot(steps, mean, label="Q-learning", color="tab:blue")
+            ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
+
+    for (label, vf), color in zip(two_stage_vf_series, _MULTI_KA_COLORS):
+        if not vf:
+            continue
+        steps, mean, lo, hi = compute_mean_value_series(
+            vf, "two_stages", confidence=confidence, use_t=use_t
+        )
+        if steps is None:
+            continue
+        ax.plot(steps, mean, label=f"Smart Q-learning ({label})", color=color)
+        ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
+
+    ax.set_xlabel("Step")
+    ax.set_ylabel("Mean Value Function")
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    return fig, ax
+
+
+def compute_per_state_value_series(
+    per_run_vf: dict,
+    learn_mode: str,
+    m_s: int,
+    m_i: int,
+    confidence: float = 0.95,
+    use_t: bool = False,
+) -> tuple:
+    """Compute mean and CI of V(m_s, m_i) across runs over steps.
+
+    Parameters
+    ----------
+    per_run_vf:
+        Dict ``{run_id: {"learn_mode": str, "V_true": ndarray, "checkpoints": {step: ndarray}}}``.
+
+    Returns
+    -------
+    (steps, means, lo, hi) — all None when no matching runs are found.
+    """
+    run_data = {
+        rid: v for rid, v in per_run_vf.items() if v["learn_mode"] == learn_mode
+    }
+    if not run_data:
+        return None, None, None, None
+
+    all_steps = sorted(
+        set(s for v in run_data.values() for s in v["checkpoints"].keys())
+    )
+    values_by_step: dict[int, list] = {}
+    for step in all_steps:
+        vals = [
+            float(v["checkpoints"][step][m_s, m_i])
+            for v in run_data.values()
+            if step in v["checkpoints"]
+        ]
+        if vals:
+            values_by_step[step] = vals
+
+    steps = sorted(values_by_step.keys())
+    means = np.array([np.mean(values_by_step[s]) for s in steps])
+    lo, hi = means.copy(), means.copy()
+    for i, s in enumerate(steps):
+        vals = values_by_step[s]
+        n = len(vals)
+        if n > 1:
+            if use_t:
+                h = stats.sem(vals) * stats.t.ppf((1 + confidence) / 2, n - 1)
+            else:
+                h = stats.sem(vals) * stats.norm.ppf((1 + confidence) / 2)
+            lo[i] = means[i] - h
+            hi[i] = means[i] + h
+    return steps, means, lo, hi
+
+
+def plot_per_state_value_multi_ka(
+    complete_vf: dict,
+    two_stage_vf_series: list[tuple[str, dict]],
+    states: tuple[int, int] | list[tuple[int, int]],
+    size_label: str = "",
+    confidence: float = 0.95,
+    use_t: bool = False,
+) -> tuple:
+    """Plot V(m_s, m_i) evolution for Q-learning and Smart Q-learning K^a variants.
+
+    A horizontal dashed black line marks V_true(m_s, m_i) (the optimum).
+    Mirrors :func:`plot_per_state_error_multi_ka`.
+
+    Parameters
+    ----------
+    complete_vf:
+        Per-run value-function dict for ``complete`` (Q-learning) runs.
+    two_stage_vf_series:
+        List of ``(label, per_run_vf)`` tuples, one per K^a value.
+    states:
+        Single ``(m_s, m_i)`` tuple or a list of tuples.
+    size_label:
+        Optional string appended to subplot titles.
+    """
+    if isinstance(states, tuple) and len(states) == 2 and isinstance(states[0], int):
+        states = [states]
+
+    n = len(states)
+    ncols = min(n, 3)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(
+        nrows, ncols, figsize=(7 * ncols, 5 * nrows), squeeze=False
+    )
+
+    # Gather V_true values per state from available runs
+    all_vf = dict(complete_vf)
+    for _, vf in two_stage_vf_series:
+        all_vf.update(vf)
+
+    for idx, (m_s, m_i) in enumerate(states):
+        ax = axes[idx // ncols][idx % ncols]
+
+        # Horizontal reference: mean V_true across runs
+        true_vals = [
+            float(v["V_true"][m_s, m_i])
+            for v in all_vf.values()
+            if "V_true" in v
+        ]
+        if true_vals:
+            ax.axhline(
+                np.mean(true_vals),
+                color="black",
+                linestyle="--",
+                linewidth=1.5,
+                label="Optimum",
+            )
+
+        steps, means, lo, hi = compute_per_state_value_series(
+            complete_vf, "complete", m_s, m_i, confidence=confidence, use_t=use_t
+        )
+        if steps is not None:
+            ax.plot(steps, means, label="Q-learning", color="tab:blue")
+            ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
+
+        for (label, vf), color in zip(two_stage_vf_series, _MULTI_KA_COLORS):
+            steps, means, lo, hi = compute_per_state_value_series(
+                vf, "two_stages", m_s, m_i, confidence=confidence, use_t=use_t
+            )
+            if steps is None:
+                continue
+            ax.plot(steps, means, label=f"Smart Q-learning ({label})", color=color)
+            ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
+
+        title = f"State $({m_s},\\,{m_i})$"
+        if size_label:
+            title += f",  {size_label}"
+        ax.set_xlabel("Step")
+        ax.set_ylabel(f"$V({m_s},{m_i})$")
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    for idx in range(n, nrows * ncols):
+        axes[idx // ncols][idx % ncols].set_visible(False)
+
+    fig.suptitle("Per-State Value Function", y=1.01)
+    plt.tight_layout()
+    return fig, axes

@@ -8,7 +8,7 @@ experiments_folders = [
     "../outputs/aml_metrics/Two-stage Q-learning",
     "../outputs/aml_metrics/Q-learning",
 ]
-algorithm_name = ["Our approach ($K^{a}=35000$)", "Q-learning"]
+algorithm_name = ["QL-ABS ($K^{a}=35000$)", "Q-Learning"]
 metric_file_name = "log_relative_error_mean_chart_data.tsv"
 
 # Create a DataFrame to hold all data

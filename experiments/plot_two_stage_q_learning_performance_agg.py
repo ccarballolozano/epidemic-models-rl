@@ -31,8 +31,8 @@ q_learning_folders = [
 # ]
 
 algorithm_folders = {
-    "Our approach ($K^{a}=35000$)": two_stage_q_learning_folders,
-    "Q-learning": q_learning_folders,
+    "QL-ABS ($K^{a}=35000$)": two_stage_q_learning_folders,
+    "Q-Learning": q_learning_folders,
 }
 
 metric_file_name = "log_relative_error_mean_chart_data.tsv"

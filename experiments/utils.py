@@ -14,10 +14,20 @@ from tqdm import tqdm
 
 ARTIFACTS_ROOT = Path("artifacts")
 
+Q_LEARNING_LABEL = "Q-Learning"
+QL_ABS_LABEL = "QL-ABS"
+
 LEARN_MODE_STYLES: list[tuple[str, str, str]] = [
-    ("complete", "Q-learning", "tab:blue"),
-    ("two_stages", "Smart Q-learning", "tab:orange"),
+    ("complete", Q_LEARNING_LABEL, "tab:blue"),
+    ("two_stages", QL_ABS_LABEL, "tab:orange"),
 ]
+
+
+def _format_ka_label(label: str) -> str:
+    """Render K^a using matplotlib mathtext in legend labels."""
+    if "$K^{a}$" in label:
+        return label
+    return label.replace("K^a", "$K^{a}$")
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +110,7 @@ def compute_mean_and_ci(
 def plot_mean_mre(
     complete_df: pd.DataFrame,
     two_stage_df: pd.DataFrame,
-    title: str,
+    title: str | None = None,
     confidence: float = 0.95,
     use_t: bool = False,
     ax=None,
@@ -112,8 +122,8 @@ def plot_mean_mre(
         fig = ax.get_figure()
 
     for df, label, color in [
-        (complete_df, "Q-learning", "tab:blue"),
-        (two_stage_df, "Smart Q-learning", "tab:orange"),
+        (complete_df, Q_LEARNING_LABEL, "tab:blue"),
+        (two_stage_df, QL_ABS_LABEL, "tab:orange"),
     ]:
         if df.empty:
             continue
@@ -125,7 +135,8 @@ def plot_mean_mre(
 
     ax.set_xlabel("Step")
     ax.set_ylabel("Log Mean Relative Error")
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -139,7 +150,7 @@ _MULTI_KA_COLORS = ["tab:orange", "tab:green", "tab:red", "tab:purple", "tab:bro
 def plot_mean_mre_multi_ka(
     complete_df: pd.DataFrame,
     two_stage_series: list[tuple[str, pd.DataFrame]],
-    title: str,
+    title: str | None = None,
     confidence: float = 0.95,
     use_t: bool = False,
     ax=None,
@@ -154,7 +165,7 @@ def plot_mean_mre_multi_ka(
         List of ``(label, df)`` tuples, one per K^a value,
         e.g. ``[("K^a = 105 000", df_105k), ("K^a = 150 000", df_150k)]``.
     title:
-        Plot title.
+        Optional plot title. If None/empty, no title is shown.
     confidence:
         CI confidence level (default 0.95).
     ax:
@@ -169,7 +180,7 @@ def plot_mean_mre_multi_ka(
         steps, mean, lo, hi = compute_mean_and_ci(
             complete_df, confidence=confidence, use_t=use_t
         )
-        ax.plot(steps, mean, label="Q-learning", color="tab:blue")
+        ax.plot(steps, mean, label=Q_LEARNING_LABEL, color="tab:blue")
         ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
 
     for (label, df), color in zip(two_stage_series, _MULTI_KA_COLORS):
@@ -178,12 +189,18 @@ def plot_mean_mre_multi_ka(
         steps, mean, lo, hi = compute_mean_and_ci(
             df, confidence=confidence, use_t=use_t
         )
-        ax.plot(steps, mean, label=f"Smart Q-learning ({label})", color=color)
+        ax.plot(
+            steps,
+            mean,
+            label=f"{QL_ABS_LABEL} ({_format_ka_label(label)})",
+            color=color,
+        )
         ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
 
     ax.set_xlabel("Step")
     ax.set_ylabel("Log Mean Relative Error")
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -227,7 +244,7 @@ def load_run_value_functions(
         return None
 
     Q_true = np.load(q_true_files[0])  # (S+1, S+1, A)
-    V_true = np.max(Q_true, axis=-1)   # (S+1, S+1)
+    V_true = np.max(Q_true, axis=-1)  # (S+1, S+1)
 
     checkpoints = {}
     for chkpt_dir in sorted(artifacts_path.glob("chkpt_*")):
@@ -336,6 +353,7 @@ def plot_per_state_error_multi_ka(
     size_label: str = "",
     confidence: float = 0.95,
     use_t: bool = False,
+    show_title: bool = True,
 ) -> tuple:
     """Plot per-state log10 MRE for Q-learning vs multiple Smart Q-learning K^a variants.
 
@@ -350,6 +368,8 @@ def plot_per_state_error_multi_ka(
         its own subplot when multiple states are provided.
     size_label:
         Optional string appended to the plot title(s).
+    show_title:
+        When False, suppress subplot titles and figure suptitle.
     """
     # Normalise to a list of (m_s, m_i) tuples
     if isinstance(states, tuple) and len(states) == 2 and isinstance(states[0], int):
@@ -374,7 +394,7 @@ def plot_per_state_error_multi_ka(
             use_t=use_t,
         )
         if steps is not None:
-            ax.plot(steps, means, label="Q-learning", color="tab:blue")
+            ax.plot(steps, means, label=Q_LEARNING_LABEL, color="tab:blue")
             ax.fill_between(steps, lo, hi, alpha=0.2, color="tab:blue")
 
         for (label, per_state_errors), color in zip(two_stage_series, _MULTI_KA_COLORS):
@@ -388,15 +408,21 @@ def plot_per_state_error_multi_ka(
             )
             if steps is None:
                 continue
-            ax.plot(steps, means, label=f"Smart Q-learning ({label})", color=color)
+            ax.plot(
+                steps,
+                means,
+                label=f"{QL_ABS_LABEL} ({_format_ka_label(label)})",
+                color=color,
+            )
             ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
 
-        title = f"State $({m_s},\\,{m_i})$"
-        if size_label:
-            title += f",  {size_label}"
         ax.set_xlabel("Step")
-        ax.set_ylabel(f"$\\log_{{10}}$ MRE")
-        ax.set_title(title)
+        ax.set_ylabel("Log Mean Relative Error")
+        if show_title:
+            title = f"State $({m_s},\\,{m_i})$"
+            if size_label:
+                title += f",  {size_label}"
+            ax.set_title(title)
         ax.legend()
         ax.grid(True, alpha=0.3)
 
@@ -404,7 +430,8 @@ def plot_per_state_error_multi_ka(
     for idx in range(n, nrows * ncols):
         axes[idx // ncols][idx % ncols].set_visible(False)
 
-    fig.suptitle(f"Per-State $\\log_{{10}}$ MRE", y=1.01)
+    if show_title:
+        fig.suptitle("Per-State $\\log_{10}$ MRE", y=1.01)
     plt.tight_layout()
     return fig, axes
 
@@ -417,6 +444,7 @@ def plot_per_state_error(
     confidence: float = 0.95,
     use_t: bool = False,
     learn_modes: list | None = None,
+    show_title: bool = True,
     ax=None,
 ) -> tuple:
     """Plot log10 MRE evolution with CI for state ``(m_s, m_i)`` across learn modes.
@@ -455,12 +483,13 @@ def plot_per_state_error(
         ax.plot(steps, means, label=label, color=color)
         ax.fill_between(steps, lo, hi, alpha=0.2, color=color)
 
-    title = f"Per-State $\\log_{{10}}$ MRE — State $({m_s},\\,{m_i})$"
-    if size_label:
-        title += f",  {size_label}"
     ax.set_xlabel("Step")
-    ax.set_ylabel(f"$\\log_{{10}}$ MRE at $({m_s},{m_i})$")
-    ax.set_title(title)
+    ax.set_ylabel("Log Mean Relative Error")
+    if show_title:
+        title = f"Per-State $\\log_{{10}}$ MRE — State $({m_s},\\,{m_i})$"
+        if size_label:
+            title += f",  {size_label}"
+        ax.set_title(title)
     ax.legend()
     ax.grid(True, alpha=0.3)
     if created_fig:
@@ -535,6 +564,7 @@ def plot_per_state_value_multi_ka(
     confidence: float = 0.95,
     use_t: bool = False,
     log_values: bool = False,
+    show_title: bool = True,
 ) -> tuple:
     """Plot V(m_s, m_i) evolution for Q-learning and Smart Q-learning K^a variants.
 
@@ -580,9 +610,7 @@ def plot_per_state_value_multi_ka(
 
         # Horizontal reference: mean V_true across runs
         true_vals = [
-            float(v["V_true"][m_s, m_i])
-            for v in all_vf.values()
-            if "V_true" in v
+            float(v["V_true"][m_s, m_i]) for v in all_vf.values() if "V_true" in v
         ]
         if true_vals:
             ref = _transform(np.array([np.mean(true_vals)]))[0]
@@ -598,8 +626,10 @@ def plot_per_state_value_multi_ka(
             complete_vf, "complete", m_s, m_i, confidence=confidence, use_t=use_t
         )
         if steps is not None:
-            ax.plot(steps, _transform(means), label="Q-learning", color="tab:blue")
-            ax.fill_between(steps, _transform(lo), _transform(hi), alpha=0.2, color="tab:blue")
+            ax.plot(steps, _transform(means), label=Q_LEARNING_LABEL, color="tab:blue")
+            ax.fill_between(
+                steps, _transform(lo), _transform(hi), alpha=0.2, color="tab:blue"
+            )
 
         for (label, vf), color in zip(two_stage_vf_series, _MULTI_KA_COLORS):
             steps, means, lo, hi = compute_per_state_value_series(
@@ -607,22 +637,33 @@ def plot_per_state_value_multi_ka(
             )
             if steps is None:
                 continue
-            ax.plot(steps, _transform(means), label=f"Smart Q-learning ({label})", color=color)
-            ax.fill_between(steps, _transform(lo), _transform(hi), alpha=0.2, color=color)
+            ax.plot(
+                steps,
+                _transform(means),
+                label=f"{QL_ABS_LABEL} ({_format_ka_label(label)})",
+                color=color,
+            )
+            ax.fill_between(
+                steps, _transform(lo), _transform(hi), alpha=0.2, color=color
+            )
 
-        title = f"State $({m_s},\\,{m_i})$"
-        if size_label:
-            title += f",  {size_label}"
         ax.set_xlabel("Step")
-        ylabel = f"$\\log_{{10}}|V({m_s},{m_i})|$" if log_values else f"$V({m_s},{m_i})$"
+        ylabel = (
+            f"$\\log_{{10}}|V({m_s},{m_i})|$" if log_values else f"$V({m_s},{m_i})$"
+        )
         ax.set_ylabel(ylabel)
-        ax.set_title(title)
+        if show_title:
+            title = f"State $({m_s},\\,{m_i})$"
+            if size_label:
+                title += f",  {size_label}"
+            ax.set_title(title)
         ax.legend()
         ax.grid(True, alpha=0.3)
 
     for idx in range(n, nrows * ncols):
         axes[idx // ncols][idx % ncols].set_visible(False)
 
-    fig.suptitle("Per-State Value Function", y=1.01)
+    if show_title:
+        fig.suptitle("Per-State Value Function", y=1.01)
     plt.tight_layout()
     return fig, axes

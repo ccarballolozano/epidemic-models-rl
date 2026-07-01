@@ -158,6 +158,11 @@ artifacts/
 
 # Images
 *.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
 
 *.npy
 
@@ -166,3 +171,5 @@ config.json
 
 # Notebooks with local outputs (run copies)
 *_with_outputs.ipynb
+
+*.pdf

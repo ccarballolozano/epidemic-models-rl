@@ -44,6 +44,11 @@ def inverse_sqrt_decay(step, n_steps, alpha_max, alpha_min):
 
 
 def compute_metrics(Q_true, Q, include_subsets=False):
+    """Compute metrics comparing Q-function approximation vs. true Q-function.
+
+    Includes both Q-function and value-function errors, absolute and relative,
+    with optional per-subset breakdowns. See src/metrics.py for exact formulas.
+    """
     V = np.max(Q, axis=-1)
     V_true = Q_true.max(axis=-1)
     error_state_values = compute_state_value_error(V_true, V)

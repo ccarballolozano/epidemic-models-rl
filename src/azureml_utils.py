@@ -23,6 +23,9 @@ TENANT_ID = os.environ["TENANT_ID"]
 CONFIG_PATH = Path(__file__).parent.parent / "experiments" / "config.json"
 CONTAINER_NAME = "azureml"
 BLOB_PREFIX_TEMPLATE = "ExperimentRun/dcid.{run_name}/"
+# Written inside a run folder after all its blobs are confirmed on disk.
+# Presence means the run is complete and can be skipped without a network call.
+_SENTINEL_FILENAME = ".complete"
 
 
 def get_credential(interactive: bool = True):
@@ -120,6 +123,7 @@ def download_run_artifacts(
     *,
     container_name: str = CONTAINER_NAME,
     overwrite: bool = False,
+    skip_downloaded: bool = False,
     max_workers: int = 16,
 ) -> Path:
     """Download all artifacts of a single AzureML run directly from blob storage.
@@ -144,8 +148,13 @@ def download_run_artifacts(
     container_name:
         Blob container name (default: ``"azureml"``).
     overwrite:
-        When *False* (default), blobs whose local file already exists are
-        skipped.
+        ``True``  — always re-download every file, ignoring local copies.
+        ``False`` — skip individual files that already exist locally (default).
+    skip_downloaded:
+        When ``True`` and ``overwrite`` is ``False``, skip the Azure blob listing
+        entirely for runs that have a ``.complete`` sentinel file on disk.
+        The sentinel is written automatically after every successful full download.
+        Has no effect when ``overwrite=True``.
     max_workers:
         Number of parallel download threads (default: 16).  Blob downloads
         are network I/O-bound so threading gives a large speedup.
@@ -155,14 +164,23 @@ def download_run_artifacts(
     Path
         The resolved *output_dir*.
     """
+    run_output_dir = Path(output_dir)
+    sentinel = run_output_dir / _SENTINEL_FILENAME
+
+    if skip_downloaded and not overwrite and sentinel.exists():
+        print(f"{run_name}: skipped (sentinel present)")
+        return run_output_dir.resolve()
+
     container_client = _make_container_client(
         storage_account_name, storage_account_key, container_name, max_workers
     )
     blob_prefix = BLOB_PREFIX_TEMPLATE.format(run_name=run_name)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         path, n_downloaded, n_skipped = _download_blobs(
-            container_client, blob_prefix, Path(output_dir), overwrite, executor
+            container_client, blob_prefix, run_output_dir, overwrite, executor
         )
+    if not overwrite:
+        sentinel.touch()
     print(f"{run_name}: {n_downloaded} downloaded, {n_skipped} skipped")
     return path
 
@@ -175,6 +193,7 @@ def download_runs_artifacts(
     *,
     container_name: str = CONTAINER_NAME,
     overwrite: bool = False,
+    skip_downloaded: bool = False,
     max_workers: int = 16,
 ) -> dict[str, Path]:
     """Download artifacts for a list of AzureML runs, with a progress bar over runs.
@@ -195,8 +214,13 @@ def download_runs_artifacts(
     container_name:
         Blob container name (default: ``"azureml"``).
     overwrite:
-        When *False* (default), blobs whose local file already exists are
-        skipped.
+        ``True``  — always re-download every file, ignoring local copies.
+        ``False`` — skip individual files that already exist locally (default).
+    skip_downloaded:
+        When ``True`` and ``overwrite`` is ``False``, skip the Azure blob listing
+        entirely for runs that have a ``.complete`` sentinel file on disk.
+        The sentinel is written automatically after every successful full download.
+        Has no effect when ``overwrite=True``.
     max_workers:
         Parallel download threads per run (default: 16).
 
@@ -206,36 +230,53 @@ def download_runs_artifacts(
         Mapping of ``run_name → local output path`` for every successfully
         downloaded run.  Runs that fail are logged and excluded from the result.
     """
-    # Build the client and thread pool once — both are reused across all runs.
-    container_client = _make_container_client(
-        storage_account_name, storage_account_key, container_name, max_workers
-    )
-
     results: dict[str, Path] = {}
     errors: dict[str, Exception] = {}
-    total_downloaded = total_skipped = 0
+    total_downloaded = total_skipped = total_run_skipped = 0
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for run_name in tqdm(run_names, desc="Runs", unit="run"):
-            run_output_dir = Path(output_dir) / run_name
-            try:
-                blob_prefix = BLOB_PREFIX_TEMPLATE.format(run_name=run_name)
-                path, n_downloaded, n_skipped = _download_blobs(
-                    container_client, blob_prefix, run_output_dir, overwrite, executor
-                )
-                results[run_name] = path
-                total_downloaded += n_downloaded
-                total_skipped += n_skipped
-                tqdm.write(
-                    f"  {run_name}: {n_downloaded} downloaded, {n_skipped} skipped"
-                )
-            except Exception as exc:
-                errors[run_name] = exc
-                tqdm.write(f"  {run_name}: FAILED — {exc}")
+    # Runs that need an actual network call
+    runs_to_fetch = []
+    for run_name in run_names:
+        run_output_dir = Path(output_dir) / run_name
+        sentinel = run_output_dir / _SENTINEL_FILENAME
+        if skip_downloaded and not overwrite and sentinel.exists():
+            results[run_name] = run_output_dir.resolve()
+            total_run_skipped += 1
+        else:
+            runs_to_fetch.append(run_name)
+
+    if total_run_skipped:
+        tqdm.write(f"Skipped {total_run_skipped} already-complete runs (sentinel present)")
+
+    if runs_to_fetch:
+        # Build the client and thread pool once — reused across all remaining runs.
+        container_client = _make_container_client(
+            storage_account_name, storage_account_key, container_name, max_workers
+        )
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for run_name in tqdm(runs_to_fetch, desc="Runs", unit="run"):
+                run_output_dir = Path(output_dir) / run_name
+                try:
+                    blob_prefix = BLOB_PREFIX_TEMPLATE.format(run_name=run_name)
+                    path, n_downloaded, n_skipped = _download_blobs(
+                        container_client, blob_prefix, run_output_dir, overwrite, executor
+                    )
+                    results[run_name] = path
+                    total_downloaded += n_downloaded
+                    total_skipped += n_skipped
+                    if not overwrite:
+                        (run_output_dir / _SENTINEL_FILENAME).touch()
+                    tqdm.write(
+                        f"  {run_name}: {n_downloaded} downloaded, {n_skipped} skipped"
+                    )
+                except Exception as exc:
+                    errors[run_name] = exc
+                    tqdm.write(f"  {run_name}: FAILED — {exc}")
 
     print(
         f"\nDone — {len(results)}/{len(run_names)} runs succeeded "
-        f"({total_downloaded} files downloaded, {total_skipped} skipped, "
+        f"({total_downloaded} files downloaded, {total_skipped} files skipped, "
+        f"{total_run_skipped} runs skipped entirely, "
         f"{len(errors)} runs failed) → {Path(output_dir).resolve()}"
     )
     return results

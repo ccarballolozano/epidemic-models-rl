@@ -29,6 +29,15 @@ def get_state_action_values_masked(Q: np.array):
 
 
 def compute_state_value_error(V_true: np.array, V_approx: np.array):
+    """Compute absolute errors for value function (state values only).
+
+    Formula (per valid state): |V_true(s) - V_approx(s)|
+    Valid states: those where M_S + M_I <= N.
+
+    Returns:
+        (min_error, mean_error, median_error, max_error)
+        Index [1] is the mean used for logging as 'mean_absolute_error_V'.
+    """
     assert V_true.shape == V_approx.shape, "Shapes of V_true and V_approx must match"
 
     # Apply the mask to the true and approximated V-values
@@ -48,6 +57,15 @@ def compute_state_value_error(V_true: np.array, V_approx: np.array):
 
 
 def compute_state_action_value_error(Q_true: np.array, Q_aprox: np.array):
+    """Compute absolute errors for Q-function (state-action values).
+
+    Formula (per valid state-action pair): |Q_true(s,a) - Q_approx(s,a)|
+    Valid state-action pairs: those where M_S + M_I <= N and action a is available.
+
+    Returns:
+        (min_error, mean_error, median_error, max_error)
+        Index [1] is the mean used for logging as 'mean_absolute_error'.
+    """
     assert Q_true.shape == Q_aprox.shape, "Shapes of Q_true and Q_aprox must match"
 
     # Apply the mask to the true and approximated Q-values
@@ -69,6 +87,21 @@ def compute_state_action_value_error(Q_true: np.array, Q_aprox: np.array):
 def compute_state_value_relative_error(
     V_true: np.array, V_approx: np.array, subset: str = None
 ):
+    """Compute relative errors for value function (state values only).
+
+    Formula (per valid state): |V_true(s) - V_approx(s)| / |V_true(s)|
+    Valid states: those where M_S + M_I <= N and V_true(s) != 0.
+
+    Parameters:
+        V_true, V_approx: Value function matrices, shape (N+1, N+1).
+        subset: Optional subset filter ("uninfected" or "infected").
+
+    Returns:
+        (min_error, mean_error, median_error, max_error)
+        Index [1] is the mean used for:
+        - 'mean_relative_error_V' (all valid states)
+        - 'log_mean_relative_error_V' (log10 of the mean)
+    """
     assert V_true.shape == V_approx.shape, "Shapes of V_true and V_approx must match"
 
     # Apply the mask to the true and approximated V-values
@@ -101,6 +134,17 @@ def compute_state_value_relative_error(
 
 
 def compute_state_action_value_relative_error(Q_true: np.array, Q_aprox: np.array):
+    """Compute relative errors for Q-function (state-action values).
+
+    Formula (per valid state-action pair): |Q_true(s,a) - Q_approx(s,a)| / |Q_true(s,a)|
+    Valid state-action pairs: those where M_S + M_I <= N and Q_true(s,a) != 0.
+
+    Returns:
+        (min_error, mean_error, median_error, max_error)
+        Index [1] is the mean used for:
+        - 'mean_relative_error' (all valid state-action pairs)
+        - 'log_mean_relative_error' (log10 of the mean)
+    """
     assert Q_true.shape == Q_aprox.shape, "Shapes of Q_true and Q_aprox must match"
 
     # Apply the mask to the true and approximated Q-values
@@ -126,6 +170,14 @@ def compute_state_action_value_relative_error(Q_true: np.array, Q_aprox: np.arra
 def compute_proportion_of_states_with_suboptimal_action(
     Q_true: np.array, Q_approx: np.array
 ):
+    """Compute the proportion of states where the learned policy is suboptimal.
+
+    Formula: (# states with argmax_a Q_approx(s,a) != argmax_a Q_true(s,a)) / (# valid states)
+    Valid states: those where M_S + M_I <= N.
+
+    Returns:
+        Proportion in [0, 1], logged as 'suboptimal_action_rate'.
+    """
     assert Q_true.shape == Q_approx.shape, "Shapes of Q_true and Q_aprox must match"
 
     optimal_actions_true = np.argmax(Q_true, axis=2)

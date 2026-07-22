@@ -173,3 +173,5 @@ config.json
 *_with_outputs.ipynb
 
 *.pdf
+
+.DS_Store

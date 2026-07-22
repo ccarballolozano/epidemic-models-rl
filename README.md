@@ -5,7 +5,7 @@ The project casts epidemic control as a Markov Decision Process (MDP) defined on
 mean-field SIRS model and compares two tabular Q-learning algorithms:
 
 - **Q-learning** — standard tabular Q-learning exploring the full state space uniformly.
-- **Smart Q-learning** — the same algorithm with a two-stage curriculum that first learns
+- **QL-ABS** (also called two-stage mode in code) — the same algorithm with a two-stage curriculum that first learns
   the values of disease-free (absorbing) states before exploring the harder transient region.
 
 Both algorithms are evaluated against the **social-optimum policy** computed exactly by
@@ -64,24 +64,19 @@ epidemic-models-rl/
 │   ├── plot.py                     # Shared plotting helpers
 │   ├── rl_experiment.py            # Single-run experiment entry point
 │   ├── azureml_utils.py            # Azure ML helpers
-│   ├── generate_compare_q_learning_performance_experiments.py
-│   └── sirs_with_confinements/     # Legacy game-theoretic analysis (not part of RL comparison)
+│   └── generate_compare_q_learning_performance_experiments.py
 │
 ├── experiments/
 │   ├── utils.py                    # MLflow fetch, CI, and plotting utilities
 │   ├── 01_rl_experiment.ipynb      # Introductory RL notebook
-│   ├── experiment.ipynb            # General experiment notebook
 │   ├── Compare_Two_Stage_Q_Learning_Performance.ipynb
-│   ├── plot_two_stage_q_learning.py
-│   ├── plot_two_stage_q_learning_performance.py
-│   └── plot_two_stage_q_learning_performance_agg.py
-│
-├── jobs/
-│   └── smart_q_learning_job.yml    # Azure ML job definition
+│   └── experiment_with_outputs.ipynb
 │
 ├── pyproject.toml                  # Project metadata and dependencies (uv)
 ├── environment.yml                 # Conda environment
-└── azureml_environment.yml         # Azure ML environment spec
+├── azureml_environment.yml         # Azure ML environment spec
+├── conda_dependencies.yml          # Additional conda dependency pinning
+└── config.json                     # Azure ML workspace settings (local)
 ```
 
 ---
@@ -173,7 +168,7 @@ Four **learning modes** control episode initialisation and termination:
 | `independent_no_infection` | Uniform; separate treatment per type | When M_I returns to 0 |
 | `two_stages` | **Stage 1**: absorbing states → **Stage 2**: transient states | Stage 1: custom; Stage 2: on absorbing entry |
 
-The **two-stage curriculum** (`two_stages`) is the main proposed method.  In stage 1 the
+The **QL-ABS curriculum** (`two_stages`) is the main proposed method.  In stage 1 the
 agent learns the Q-values of absorbing states first, providing stable bootstrap targets
 before the harder transient region is explored in stage 2.  Optional `alpha_restart_on_stage_change`
 resets the learning-rate schedule at the stage transition.
@@ -273,7 +268,7 @@ python generate_compare_q_learning_performance_experiments.py
 ```
 
 This submits one batch of `complete` (Q-learning) runs and one batch of `two_stages`
-(Smart Q-learning) runs to Azure ML, with all metrics logged to the linked MLflow
+(QL-ABS) runs to Azure ML, with all metrics logged to the linked MLflow
 tracking server.
 
 ### Step 2 — Visualise results

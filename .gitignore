@@ -175,3 +175,9 @@ config.json
 *.pdf
 
 .DS_Store
+
+# IDE / editor config (local-only)
+.vscode/
+
+# Development / scratch notebooks (not consumer-facing)
+experiments/01_rl_experiment.ipynb

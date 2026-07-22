@@ -20,10 +20,10 @@ BASE_PARAMS = {
     "max_steps_episode": 2000,
     "n_episodes": 1_000_000,
     "n_steps": 1_000_000,
-    "first_stage_steps": 300_000,  # 5_000, 10_000, 35_000, 50_000, 100_000, 105_000, 150_000, 300_000
+    "first_stage_steps": 100_000,  # 5_000, 10_000, 35_000, 50_000, 100_000, 105_000, 150_000, 300_000
     "recovery_rate": 0.6,
     "resusceptible_rate": 0.0,  # 0.0, 0.3
-    "size": 50,  # 5, 10, 50
+    "size": 15,  # 5, 15, 50
     "state_action_values_initialization": "random",
     "vaccination_rate": 0.2,
     "log_every_n_steps": 1_000,
@@ -31,27 +31,6 @@ BASE_PARAMS = {
     "alpha_restart_on_stage_change": True,
     "stage2_absorbing_extra_steps": 1,
 }
-# BASE_PARAMS = {
-#    "alpha_decay": 0.00005,
-#    "alpha_max": 0.5,
-#    "alpha_min": 0.0001,
-#    "cost_infection": 2,
-#    "cost_lockdown": 1.001,
-#    "discount_factor": 0.99,
-#    "encounter_rate": 1.1,
-#    "epsilon": 0.1,
-#    "max_steps_episode": 6_000,
-#    "n_episodes": 5000000,
-#    "n_steps": 5000000,
-#    "first_stage_steps": 80000,
-#    "recovery_rate": 0.6,
-#    "resusceptible_rate": 0.3,
-#    "size": 10,
-#    "state_action_values_initialization": "random",
-#    "vaccination_rate": 0.2,
-#    "log_every_n_steps": 1000,
-#    "save_every_n_steps": 100000,
-# }
 
 
 def build_command_str(learn_mode: str, tag_run_group: str = None) -> str:
